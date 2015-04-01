@@ -10,7 +10,7 @@ struct WAVEAUDIO {
 	HWAVEIN hwi;
 	HWAVEOUT hwo;
 	HANDLE he; /* synchronization event */
-	WAVEHDR whin[WAVEAUDIO_NBUFS], whout[WAVEAUDIO_NBUFS];
+	WAVEHDR whin[WAVEAUDIO_NBUFS], whout[WAVEAUDIO_NBUFS]; 
 	int ibuf;
 };
 

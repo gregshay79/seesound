@@ -120,9 +120,6 @@
 //  Pass in a value of -1 to get a parameter default value.
 //  e.g. ratemap = makeRateMap_c(x,8000,50,3850,32,10);
 //
-
-double cfarray[MAX_NUM_CHANNELS];
-
 double p1rs[MAX_NUM_CHANNELS], p2rs[MAX_NUM_CHANNELS], p3rs[MAX_NUM_CHANNELS], p4rs[MAX_NUM_CHANNELS],
 	   p1is[MAX_NUM_CHANNELS], p2is[MAX_NUM_CHANNELS], p3is[MAX_NUM_CHANNELS], p4is[MAX_NUM_CHANNELS]; 
 double senv[MAX_NUM_CHANNELS],css[MAX_NUM_CHANNELS],sns[MAX_NUM_CHANNELS];
@@ -227,7 +224,6 @@ void makeRateMap(double *ratemap,int *numframesExport, double *x, int nsamples, 
   for (chan=0; chan<numchans; chan++)
   {
     cf = ErbRateToHz(lowErb+chan*spaceErb);
-	cfarray[chan] = cf;
     tptbw = tpt * erb(cf) * BW_CORRECTION;
     a = exp(-tptbw);
     gain = (tptbw*tptbw*tptbw*tptbw)/3;
@@ -259,10 +255,7 @@ void makeRateMap(double *ratemap,int *numframesExport, double *x, int nsamples, 
 //    cs = 1; sn = 0;
     for (i=0; i<nsamples; i++)
 	{      
-
-	// IIR lowpass filters here.. sets the frequency selectivity
-	// Must redesign this for finer frequency selectivity
-      p0r = cs*x[i] + a1*p1r + a2*p2r + a3*p3r + a4*p4r; 
+      p0r = cs*x[i] + a1*p1r + a2*p2r + a3*p3r + a4*p4r;
       p0i = sn*x[i] + a1*p1i + a2*p2i + a3*p3i + a4*p4i;
      
       /* Clip coefficients to stop them from becoming too close to zero */
@@ -271,7 +264,7 @@ void makeRateMap(double *ratemap,int *numframesExport, double *x, int nsamples, 
       if (fabs(p0i) < VERY_SMALL_NUMBER)
         p0i = 0.0F;
       
-      u0r = p0r + a1*p1r + a5*p2r;  // detector output, an FIR filter convolution of the running filtered signal.
+      u0r = p0r + a1*p1r + a5*p2r;
       u0i = p0i + a1*p1i + a5*p2i;
 
       p4r = p3r; p3r = p2r; p2r = p1r; p1r = p0r;

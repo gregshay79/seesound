@@ -1,8 +1,11 @@
 #include "stdafx.h"
 //#include "SeeSound.h"
 #include <math.h>
+#include "DisplayFunctions.h"
 
 #define BOUND(Y,L,H) (Y=Y<L?L:(Y>H)?H:Y)
+
+class minMaxMeter mm;
 
 void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,double ygain,int grid)
 {
@@ -146,4 +149,98 @@ void DisplayScrolling(HDC hdc,int px,int py,int w,int h,double *data,int dlen)
 	}
 
 	SelectObject(hdc,prevPen);
+}
+
+
+minMaxMeter::minMaxMeter()
+{
+	for (int i = 0; i < IMAX; i++) reset(i);
+}
+
+
+void minMaxMeter::reset(int ix,double maxBound)
+{
+	for (int i = 0; i <= HISTMAX; i++) hist[ix][i] = 0;
+	hmax[ix] = maxBound;
+}
+
+void minMaxMeter::set(int ix, double value)
+{
+	int i;
+	if (value < mmin[ix]) mmin[ix] = value;
+	if (value > mmax[ix]) mmax[ix] = value;
+	i = .5 + (value / hmax[ix])*HISTMAX;
+	if (i>HISTMAX-1) i = HISTMAX-1;
+	hist[ix][i]++;
+}
+
+void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
+{
+	int i, y;
+	HGDIOBJ prevPen;
+
+	// Erase previous
+	PatBlt(hdc, px, py, HISTMAX, h, BLACKNESS);
+	
+	//Draw bounding box
+	prevPen = SelectObject(hdc, GetStockObject(WHITE_PEN));
+	MoveToEx(hdc, px-1, py, NULL);
+	LineTo(hdc, px + HISTMAX, py);
+	LineTo(hdc, px + HISTMAX, py + h);
+	LineTo(hdc, px-1, py + h);
+	LineTo(hdc, px-1, py);
+
+
+
+	for (i = 0; i < HISTMAX; i++) {
+		MoveToEx(hdc, px + i, py + h,NULL);
+		y = hist[ix][i];
+		if (y>h) y = h;
+		LineTo(hdc, px + i, py + h - y);
+	}
+
+	SelectObject(hdc, prevPen);
+}
+
+void minMaxMeter::draw(HDC hdc, int px, int py, int h, double valmax, int ix, COLORREF color)
+{
+	int i,ymax, ymin;
+	//HPEN nPen;
+	HGDIOBJ prevPen;
+
+	ymin = h*mmin[ix] / valmax; 
+	ymin = ymin < 0 ? 0 : ymin;
+
+	ymax = h*mmax[ix] / valmax;
+	ymax = ymax > h ? h : ymax;
+
+	if (!nPen[ix]) {
+		nPen[ix] = CreatePen(PS_SOLID, 1, color);
+	}
+	prevPen = SelectObject(hdc, nPen[ix]);
+
+
+	if (ymin==ymax)
+		SetPixel(hdc, px, py + h - ymin, color);
+	else {
+		MoveToEx(hdc, px, py + h - ymin, NULL);
+		LineTo(hdc, px, py + h - ymax);
+	}
+
+
+//	for (i = ymin; i <= ymax; i++) {
+//		SetPixel(hdc, px, py + h - i, color);
+//	}
+
+	mmin[ix] = 999999999.;
+	mmax[ix] = -999999999.;
+
+	SelectObject(hdc, prevPen);
+}
+
+minMaxMeter::~minMaxMeter()
+{
+	for (int i = 0; i < 8;i++)
+		if (nPen[i])
+			DeleteObject(nPen[i]);
 }

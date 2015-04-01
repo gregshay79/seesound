@@ -10,18 +10,27 @@
 #include "../library/wwaveloop.h"
 #include "../library/DisplayFunctions.h"
 
+#include "cw.h"
+#include "configuration.h"
+
 #define MAX_LOADSTRING 100
 
-#define AUDIO_BUFFER_SIZE 1024
-#define MATH_BUFFER_SIZE 1024
-#define RM_SIZE 1024
-#define FFT_SIZE 1024
+
+#define AUDIO_BUFFER_SIZE 256
+#define MATH_BUFFER_SIZE AUDIO_BUFFER_SIZE
+#define RM_SIZE MATH_BUFFER_SIZE
+#define FFT_SIZE MATH_BUFFER_SIZE
 #define SAMPLE_FREQ 16000
 
-//#define FFT
+#define FFT
+//#define GAMMATONE
 
 #define AUTOCORR_SIZE 256		
 #define NUM_CHANNELS 512
+
+//Display size
+#define XMAX 1366
+#define YMAX 768
 
 //#define PLAYBACK
 
@@ -59,19 +68,46 @@ _int64 tstamp1,tdiff,tstamp2=0;
 _int64 tmax,tmin;
 double cpu_freq_factor;
 
+extern wchar_t dummybuffer[];
+
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
-
-
 double filterstate[8];
 
 double gain=2.0;
 double GTVgain = 10.;
 double max,maxi;
+
+
+cw decoder;
+
+int timedown = 0;
+
+
+void marktimeStart(){
+	QueryPerformanceCounter((LARGE_INTEGER*)&tstamp1);
+}
+
+void marktimeEnd(){
+	QueryPerformanceCounter((LARGE_INTEGER*)&tstamp2);
+
+	if (--timedown<0) {
+		timedown = 200;
+		tmin = 99999999;
+		tmax = 0;
+	}
+
+	tdiff = tstamp2 - tstamp1;
+	if (tstamp2 != 0) {
+		if (tdiff > tmax) tmax = tdiff;
+		if (tdiff < tmin) tmin = tdiff;
+	}
+}
+
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
@@ -100,15 +136,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	HPEN redPen,greenPen;
 	HGDIOBJ  defpen;
 	HGDIOBJ prevObj;
-	 
+	int mcount = 10;
 
 	// Initialize global strings
 	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadString(hInstance, IDC_LPCSOUND, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 
-	tmax = 0;
-	tmin = 999999999;
 	QueryPerformanceFrequency((LARGE_INTEGER*)&tstamp1);
 	cpu_freq_factor = 1.0e6/((double)tstamp1);
 	// Perform application initialization:
@@ -133,6 +167,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	for(i=0;i<MATH_BUFFER_SIZE;i++) {
 		dbuffi[i]=0.;
+		scrbuff[i] = 0.;
 //		postmultr[i]= cos(i*pi/(2*MATH_BUFFER_SIZE));
 //		postmulti[i]= sin(i*pi/(2*MATH_BUFFER_SIZE));
 	}
@@ -157,6 +192,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	defpen = SelectObject(hdc,GetStockObject(WHITE_PEN));
 	PatBlt(hdc,0,0,1200,1024,BLACKNESS);
 
+	mm.reset(3,250.);
+
+	decoder.init();
+	
 	while(1) {
 		// Main message loop:
 		if (PeekMessage(&msg, NULL, 0, 0,PM_REMOVE)) {
@@ -231,6 +270,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				//LineTo(hdc,i,256-yval);
 			}
 
+			// call decoder
+			decoder.rx_process(dbuffr, MATH_BUFFER_SIZE);
+			//decoder.rx_process(&dbuffr[MATH_BUFFER_SIZE >> 1], MATH_BUFFER_SIZE >> 1);
+
 			 //Apply windowing function
 			 for(i=0;i<FFT_SIZE;i++) {
 //				 int j;
@@ -241,8 +284,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 }
 
 
+			//DisplayWaveform(hdc,256,8,512,256,wbuff,FFT_SIZE,1.);
+			
+			// DisplayWaveform(hdc, 256, 1, 512, 128, wbuff, FFT_SIZE, 1.);
 
-			DisplayWaveform(hdc,256,8,512,256,wbuff,FFT_SIZE,1.);
 
 #if 0
 			// shuffle DCT input
@@ -251,17 +296,42 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				cbuffr[MATH_BUFFER_SIZE-1-i]=dbuffr[(i<<1)+1]; // for DCT transform
 			}
 #endif		
-			 QueryPerformanceCounter((LARGE_INTEGER*)&tstamp1);
 
 
-#if 1 //FFT
+#ifdef FFT
 			//Compute FFT
+#if 0
 			fft(wbuff,dbuffi,fbuffr,fbuffi,FFT_SIZE,1);  
 			for(i=0;i< FFT_SIZE>>1 ;i++) {
 				scrbuff[i]= .7* (10*log(/*sqrt*/(fbuffr[i]*fbuffr[i]+fbuffi[i]*fbuffi[i]))) + .3*scrbuff[i]; //FFT Magnitude
 			}
-			 DisplayScrolling(hdc,10,256+16,512,256,scrbuff,FFT_SIZE>>1);
-			 DisplayWaveform(hdc,10,272+256+20,512,256,scrbuff,FFT_SIZE>>1,100.);
+#endif
+			marktimeStart();
+
+			 DisplayScrolling(hdc,8,128+8,1024,256,scrbuff,FFT_SIZE>>1);
+			 			 marktimeEnd();
+
+			 //mm.draw(hdc, 8+1024-2, 128 + 8, 256, 3200., 2, RGB(200, 100, 100));
+			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 2., 2, RGB(128, 128, 128));
+			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 150., 0, RGB(0, 250, 250));
+			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 150., 1, RGB(250, 250, 0));
+			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 150., 3, RGB(0, 255, 0));
+			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 2., 4, RGB(255, 0, 0));
+
+			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 500., 5, RGB(250, 250, 250));
+
+			 mm.drawh(hdc, 8, 512, 64, 3);
+
+			 if (--mcount == 0) {
+				 mm.reset(3, 240.);
+				 mcount = 64;
+			 }
+
+
+			
+
+
+			 //DisplayWaveform(hdc,10,128+256+16,512,128,scrbuff,FFT_SIZE>>1,100.);
 #endif
 
 
@@ -278,20 +348,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				for(i=0;i<NUM_CHANNELS;i++) {
 					gbuff[i]= GTVgain*ratemap[j][i];
 				}
-				 DisplayScrolling(hdc,528,272,512,512,gbuff,NUM_CHANNELS);
+				 DisplayScrolling(hdc,528,2+YMAX-128-512,512,512,gbuff,NUM_CHANNELS);
 			 }
-			 DisplayWaveform(hdc,10,256+16,512,512,ratemap[0],NUM_CHANNELS,1000.);
+			 DisplayWaveform(hdc,10,2+YMAX-128-512,512,256,ratemap[0],NUM_CHANNELS,1000.);
 #endif
 
-			 QueryPerformanceCounter((LARGE_INTEGER*)&tstamp2);
 
-			 tdiff = tstamp2 - tstamp1;
-			 if (tstamp2 != 0) {
-				if (tdiff > tmax) tmax = tdiff;
-				if (tdiff < tmin) tmin = tdiff;
-			 }
-			 
-			 tstamp2 = tstamp1;
+#if 0
 			 //Autocorrelation
 
 
@@ -322,7 +385,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 //			 for(i=0;i<FFT_SIZE;i++)
 //				 autocorrd[i] = autocorr[i]*sum;
 
-			DisplayWaveform(hdc,0,828,1024,128,autocorr,AUTOCORR_SIZE,16384./sum,80); // 10ms grid marks
+// 1366 x 768
+//			DisplayWaveform(hdc,0,828,1024,128,autocorr,AUTOCORR_SIZE,16384./sum,80); // 10ms grid marks
+			DisplayWaveform(hdc, 0, YMAX-128, 1024, 128, autocorr, AUTOCORR_SIZE, 16384. / sum, 80); // 10ms grid marks
+
 
 			sum=0.;
 			max = 0.;
@@ -352,15 +418,21 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			}
 
 			freq = SAMPLE_FREQ/maxi;
-
+#endif
 			//sum = sum/autocorr[0];
 			swprintf(pbuff,80,L"(%ld,%ld) autocorr=% 5.2f, freq= % 5.2f", (long)(tmin*cpu_freq_factor),(long)(tmax*cpu_freq_factor),autocorr[0],freq);  
-			PatBlt(hdc,800,828,200,16,WHITENESS);
-			TextOut(hdc,800,828,pbuff,wcslen(pbuff));
+
+			PatBlt(hdc,800,YMAX-128,200,16,WHITENESS);
+			TextOut(hdc,800,YMAX-128,pbuff,wcslen(pbuff));
+
+			PatBlt(hdc, 0, YMAX - 128 - 16, 1280, 16, WHITENESS);
+			swprintf(pbuff, 80, L"frq=%5.1f,wpm=%d, cw adap=%ld", decoder.frequency, decoder.cw_receive_speed, decoder.cw_adaptive_receive_threshold);
+			TextOut(hdc, 0, YMAX - 128 - 16, pbuff, wcslen(pbuff));
+			TextOut(hdc, 256, YMAX - 128 - 16, dummybuffer, wcslen(dummybuffer));
 
 			prevObj=SelectObject(hdc,redPen);
-			MoveToEx(hdc,maxi*4,828,NULL);
-			LineTo(hdc,maxi*4,828+128);
+			MoveToEx(hdc,maxi*4,YMAX-128,NULL);
+			LineTo(hdc,maxi*4,YMAX);
 			SelectObject(hdc,prevObj);
 			 
 #if 0
@@ -390,12 +462,16 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				//LineTo(hdc,i,256-yval);
 			}
 #endif
+
+
+
 		}
 	}
 
 	SelectObject(hdc,defpen);
 	DeleteObject(redPen);
 	DeleteObject(greenPen);
+
 	ReleaseDC(hWnd,hdc);
 
 	waveaudio_cleanup(&wa);
