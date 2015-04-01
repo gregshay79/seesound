@@ -39,22 +39,22 @@
     <ClCompile Include="..\Library\wwaveloop.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\fldigi-src\src\cw_rtty\cw.cxx">
+    <ClCompile Include="..\fldigimod\src\cw_rtty\cw.cxx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\fldigi-src\src\cw_rtty\morse.cxx">
+    <ClCompile Include="..\fldigimod\src\cw_rtty\morse.cxx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\fldigi-src\src\filters\fftfilt.cxx">
+    <ClCompile Include="..\fldigimod\src\filters\fftfilt.cxx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\fldigi-src\src\filters\filters.cxx">
+    <ClCompile Include="..\fldigimod\src\filters\filters.cxx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\fldigi-src\src\trx\modem.cxx">
+    <ClCompile Include="..\fldigimod\src\misc\configuration.cxx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\fldigi-src\src\misc\configuration.cxx">
+    <ClCompile Include="..\fldigimod\src\trx\modem.cxx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
