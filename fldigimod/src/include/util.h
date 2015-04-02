@@ -25,7 +25,7 @@
 #define UTIL_H
 
 // include the system defines
-#include "config.h"
+//#include "config.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,7 +79,7 @@ extern "C" {
 #        define write_memory_barrier() full_memory_barrier()
 #    endif
 #else
-#    warning Memory barriers not defined on this system
+//#    warning Memory barriers not defined on this system
 #    define full_memory_barrier() ((void)0)
 #    define read_memory_barrier() full_memory_barrier()
 #    define write_memory_barrier() full_memory_barrier()
@@ -160,7 +160,7 @@ unsigned long ver2int(const char* version);
 void save_signals(void);
 void restore_signals(void);
 
-void MilliSleep(long msecs);
+//void MilliSleep(long msecs);
 
 #ifdef __cplusplus
 } // extern "C"

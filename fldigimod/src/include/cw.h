@@ -37,7 +37,7 @@
 #include "mbuffer.h"
 
 
-#define	CWSampleRate	8000
+#define	CWSampleRate	16000
 #define	CWMaxSymLen		4096		// AG1LE: - was 4096 
 #define KNUM 			640			// 1/2 dot length at 5 wpm
 
@@ -93,7 +93,7 @@ enum CW_EVENT {
 class cw : public modem {
 
 #define CLRCOUNT 16
-#define	DEC_RATIO	16
+//#define	DECIMATE_RATIO	16             // demodulation Filter decimation ratio
 #define CW_FIRLEN   512
 // Maximum number of signs (dit or dah) in a Morse char.
 #define WGT_SIZE 7
@@ -104,7 +104,8 @@ struct SOM_TABLE {
 	float wgt[WGT_SIZE];	/* Dot-dash weight vector */
 };
 
-protected:
+//protected:
+public:
 	int			symbollen;		// length of a dot in sound samples (tx)
 	int			fsymlen;        	// length of extra interelement space (farnsworth)
 	double		phaseacc;		// used by NCO for rx/tx tones
@@ -240,7 +241,7 @@ public:
 	~cw();
 	void	init();
 	void	rx_init();
-	void	tx_init(SoundBase *sc);
+	void	tx_init();// (SoundBase *sc);
 	void	restart() {};
 
 	int		rx_process(const double *buf, int len);

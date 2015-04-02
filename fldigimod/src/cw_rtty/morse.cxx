@@ -26,12 +26,13 @@
  *
  */
 
-#include <config.h>
+//#include <config.h>
+#include "stdafx.h"
 
 #include <cstring>
 
 #include "morse.h"
-#include "configuration.h"
+//#include "configuration.h"
 
 /* ---------------------------------------------------------------------- */
 
@@ -190,12 +191,15 @@ void cMorse::init()
 	unsigned int i;
 	long code;
 	int len;
+
+#if 0
 // Update the char / prosign relationship
 	if (progdefaults.CW_prosigns.length() == 9) {
 		for (int i = 0; i < 9; i++) {
-			cw_table[i].chr = progdefaults.CW_prosigns[i];
+			cw_table[i].chr = CW_prosigns[i];
 		}
 	}
+#endif
 // Clear the RX & TX tables
 	for (i = 0; i < MorseTableSize; i++) {
 		cw_tx_lookup[i].code = 0x04;
@@ -204,16 +208,16 @@ void cMorse::init()
 	}
 // For each main table entry, create a token entry.
 	for (cw = cw_table; cw->chr != 0; cw++) {
-		if ((cw->chr == '(') && !progdefaults.CW_use_paren) continue;
-		if ((cw->chr == '<') && progdefaults.CW_use_paren) continue;
+		if ((cw->chr == '(') && !false) continue;
+		if ((cw->chr == '<') && false) continue;
 		i = tokenize_representation(cw->rpr);
 		if (i != 0)
 			cw_rx_lookup[i] = cw;
 	}
 // Build TX table 
 	for (cw = cw_table; cw->chr != 0; cw++) {
-		if ((cw->chr == '(') && !progdefaults.CW_use_paren) continue;
-		if ((cw->chr == '<') && progdefaults.CW_use_paren) continue;
+		if ((cw->chr == '(') && !false) continue;
+		if ((cw->chr == '<') && false) continue;
 		len = strlen(cw->rpr);
 		code = 0x04;
 		while (len-- > 0) {

@@ -24,7 +24,11 @@
 // along with fldigi.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#include <config.h>
+//#include <config.h>
+#include "stdafx.h"
+
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -431,7 +435,7 @@ sfft::~sfft()
 // FFT is computed for each value from first to last
 // Values are not stable until more than "len" samples have been processed.
 // Copies the frequencies to a pointer with a given stride.
-void sfft::run(const cmplx& input, cmplx * __restrict__ result, int stride )
+void sfft::run(const cmplx& input, cmplx *  result, int stride )
 {
 	cmplx & de = delay[ptr];
 	const cmplx z( input.real() - k2 * de.real(), input.imag() - k2 * de.imag());
@@ -442,8 +446,8 @@ void sfft::run(const cmplx& input, cmplx * __restrict__ result, int stride )
 
 	// It is more efficient to have vrot and bins very close to each other.
 	for(	vrot_bins_pair
-			* __restrict__ itr = vrot_bins + first,
-			* __restrict__ end = vrot_bins + last ;
+			*  itr = vrot_bins + first,
+			*  end = vrot_bins + last ;
 		itr != end ;
 		++itr, result += stride ) {
 		*result = itr->bins = itr->bins * itr->vrot + z * itr->vrot;

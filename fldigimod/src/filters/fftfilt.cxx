@@ -27,7 +27,11 @@
 // along with fldigi.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#include <config.h>
+//#include <config.h>
+#include "stdafx.h"
+
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #include <memory.h>
 #include <iostream>
@@ -38,7 +42,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <memory.h>
 
 #include "misc.h"

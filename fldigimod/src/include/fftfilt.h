@@ -21,6 +21,8 @@
 #ifndef	_FFTFILT_H
 #define	_FFTFILT_H
 
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include "complex.h"
 #include "gfft.h"
 

@@ -20,22 +20,26 @@
 // along with fldigi.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#include <config.h>
+//#include <config.h>
+#include "stdafx.h"
+
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #include <string>
 
 #include "misc.h"
 #include "filters.h"
 
-#include "confdialog.h"
+//#include "confdialog.h"
 #include "modem.h"
-#include "trx.h"
-#include "fl_digi.h"
-#include "main.h"
+//#include "trx.h"
+//#include "fl_digi.h"
+//#include "main.h"
 #include "arq_io.h"
 #include "configuration.h"
-#include "waterfall.h"
-#include "qrunner.h"
+//#include "waterfall.h"
+//#include "qrunner.h"
 #include "macros.h"
 
 #include "status.h"
@@ -206,11 +210,11 @@ modem::modem()
 	}
 
 	sigsearch = 0;
-	if (wf) {
-		bool wfrev = wf->Reverse();
-		bool wfsb = wf->USB();
-		reverse = wfrev ^ !wfsb;
-	} else
+//	if (wf) {
+//		bool wfrev = wf->Reverse();
+//		bool wfsb = wf->USB();
+//		reverse = wfrev ^ !wfsb;
+//	} else
 		reverse = false;
 	historyON = false;
 	cap = CAP_RX | CAP_TX;
@@ -221,15 +225,27 @@ modem::modem()
 	bandwidth = 0.0;
 }
 
+
+double modem::decayavg_ms(double average, double input, int ix, double tc)
+{
+	if (cf[ix] == 0.) {
+		cf[ix] = 1 - exp(-( ((double)DECIMATE_RATIO)/samplerate ) / (tc / 1000.));
+	}
+
+	return average + cf[ix] * (input - average);
+}
+
+
 // modem types CW and RTTY do not use the base init()
 void modem::init()
 {
 	stopflag = false;
-	if (!wf) return;
+//	if (!wf) return;
 
-	bool wfrev = wf->Reverse();
-	bool wfsb = wf->USB();
-	reverse = wfrev ^ !wfsb;
+//	bool wfrev = wf->Reverse();
+//	bool wfsb = wf->USB();
+//	reverse = wfrev ^ !wfsb;
+	reverse = false;
 
 	if (progdefaults.StartAtSweetSpot) {
 		set_freq(progdefaults.PSKsweetspot);
@@ -238,8 +254,13 @@ void modem::init()
 #if !BENCHMARK_MODE
 		progStatus.carrier = 0;
 #endif
-	} else
-		set_freq(wf->Carrier());
+	}
+	else
+		//		set_freq(wf->Carrier());
+		set_freq(1000);
+
+	for (int i = 0; i < 8; i++)
+		cf[i] = 0.;
 }
 
 void modem::set_freq(double freq)
@@ -250,7 +271,7 @@ void modem::set_freq(double freq)
 		progdefaults.HighFreqCutoff - bandwidth / 2);
 	if (freqlock == false)
 		tx_frequency = frequency;
-	REQ(put_freq, frequency);
+//	REQ(put_freq, frequency);
 }
 
 void modem::set_freqlock(bool on)
@@ -264,14 +285,14 @@ double modem::get_txfreq(void) const
 {
 	if (unlikely(!(cap & CAP_TX)))
 		return 0;
-	else if (mailserver && progdefaults.PSKmailSweetSpot)
+	else if (/*mailserver && */ progdefaults.PSKmailSweetSpot)
 		return progdefaults.PSKsweetspot;
 	return tx_frequency;
 }
 
 double modem::get_txfreq_woffset(void) const
 {
-	if (mailserver && progdefaults.PSKmailSweetSpot)
+	if (/*mailserver && */ progdefaults.PSKmailSweetSpot)
 		return (progdefaults.PSKsweetspot - progdefaults.TxOffset);
 	return (tx_frequency - progdefaults.TxOffset);
 }
@@ -279,14 +300,14 @@ double modem::get_txfreq_woffset(void) const
 void modem::set_bandwidth(double bw)
 {
 	bandwidth = bw;
-	put_Bandwidth((int)bandwidth);
+//	put_Bandwidth((int)bandwidth);
 }
 
 void modem::set_reverse(bool on)
 {
-	if (likely(wf))
-		reverse = on ^ (!wf->USB());
-	else
+//	if (likely(wf))
+//		reverse = on ^ (!wf->USB());
+//	else
 		reverse = false;
 }
 
@@ -298,8 +319,8 @@ void modem::set_metric(double m)
 void modem::display_metric(double m)
 {
 	set_metric(m);
-	if(!progStatus.pwrsqlonoff)
-	::global_display_metric(m);
+//	if(!progStatus.pwrsqlonoff)
+//	::global_display_metric(m);
 }
 
 bool modem::get_cwTrack()
@@ -386,7 +407,7 @@ double modem::sigmaN (double es_ovr_n0)
 //	case MODE_FSKHELL: case MODE_FSKH105: case MODE_HELL80:
 	default: break;
 	}
-	if (trx_state == STATE_TUNE) mode_factor = 0.707;
+//	if (trx_state == STATE_TUNE) mode_factor = 0.707;
 
 	sn_ratio = pow(10, ( es_ovr_n0 / 10) );
 	sigma =  sqrt ( mode_factor / sn_ratio );
@@ -433,12 +454,13 @@ void modem::s2nreport(void)
 	double s2n_avg = s2n_sum / s2n_ncount;
 	double s2n_stddev = sqrt((s2n_sum2 / s2n_ncount) - (s2n_avg * s2n_avg));
 
-	pskmail_notify_s2n(s2n_ncount, s2n_avg, s2n_stddev);
+//	pskmail_notify_s2n(s2n_ncount, s2n_avg, s2n_stddev);
 }
 
 void modem::ModulateXmtr(double *buffer, int len)
 {
-	if (unlikely(!scard)) return;
+#if 0
+//	if (unlikely(!scard)) return;
 
 	tx_sample_count += len;
 
@@ -475,13 +497,14 @@ void modem::ModulateXmtr(double *buffer, int len)
 		}
 		return;
 	}
-
+#endif
 }
 
 #include <iostream>
 using namespace std;
 void modem::ModulateStereo(double *left, double *right, int len, bool sample_flag)
 {
+#if 0
 	if (unlikely(!scard)) return;
 
 	if(sample_flag)
@@ -515,12 +538,13 @@ void modem::ModulateStereo(double *left, double *right, int len, bool sample_fla
 		}
 		return;
 	}
-
+#endif
 }
 
 
 void modem::videoText()
 {
+#if 0
 	if (trx_state == STATE_TUNE)
 		return;
 
@@ -568,6 +592,7 @@ void modem::videoText()
 		wfid_text(idtxt);
 		progdefaults.macroid = false;
 	}
+#endif
 }
 
 // CW ID transmit routines
@@ -667,7 +692,7 @@ void modem::cwid_send_ch(int ch)
 		cwid_send_symbol(0);
 		cwid_send_symbol(0);
 		cwid_send_symbol(0);
-		put_echo_char(ch);
+//		put_echo_char(ch);
 		return;
 	}
 
@@ -777,7 +802,7 @@ void modem::wfid_send(int numchars)
 void modem::wfid_sendchars(string s)
 {
 	int len = s.length();
-	int  n[len];
+	int  n[128];
 	int  c;
 	wfid_make_tones(s.length());
 	for (int i = 0; i < len; i++) {
@@ -804,13 +829,14 @@ void modem::wfid_sendchars(string s)
 	}
 }
 
+double outbuf[5000];
 void modem::pretone()
 {
 	int sr = get_samplerate();
 	int symlen = sr / 10;
 	double phaseincr = 2.0 * M_PI * get_txfreq() / sr;
 	double phase = 0.0;
-	double outbuf[symlen];
+//	double outbuf[symlen];
 
 	for (int j = 0; j < symlen; j++) {
 		outbuf[j] = (0.5 * (1.0 - cos (M_PI * j / symlen)))*sin(phase);
@@ -872,7 +898,7 @@ void modem::wfid_text(const string& s)
 				vidwidth = (int)ceil(get_bandwidth() / (TONESPACING * (NUMCOLS + CHARSPACE)));
 		}
 
-	put_status(video.c_str());
+//	put_status(video.c_str());
 
 	int numlines = 0;
 	string tosend;
@@ -890,7 +916,7 @@ void modem::wfid_text(const string& s)
 	wfid_send(vidwidth);
 	wfid_send(vidwidth);
 
-	put_status("");
+//	put_status("");
 }
 
 double	modem::wfid_outbuf[MAXIDSYMLEN];

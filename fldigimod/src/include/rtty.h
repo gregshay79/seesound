@@ -36,8 +36,8 @@
 #include "globals.h"
 #include "filters.h"
 #include "fftfilt.h"
-#include "digiscope.h"
-#include "view_rtty.h"
+//#include "digiscope.h"
+//#include "view_rtty.h"
 
 #define	RTTY_SampleRate	8000
 //#define RTTY_SampleRate 11025
@@ -221,7 +221,7 @@ private:
 	int rttyparity(unsigned int);
 	bool rx(bool bit);
 
-	view_rtty *rttyviewer;
+//	view_rtty *rttyviewer;
 
 // transmit
 	double nco(double freq);
@@ -242,16 +242,16 @@ public:
 	~rtty();
 	void init();
 	void rx_init();
-	void tx_init(SoundBase *sc);
+	void tx_init();//SoundBase *sc);
 	void restart();
 	void reset_filters();
 	int rx_process(const double *buf, int len);
 	int tx_process();
 	void flush_stream();
 
-	void clear_viewer() { rttyviewer->clear(); }
-	void clear_ch(int n) { rttyviewer->clearch(n); }
-	int  viewer_get_freq(int n) { return rttyviewer->get_freq(n); }
+//	void clear_viewer() { rttyviewer->clear(); }
+//	void clear_ch(int n) { rttyviewer->clearch(n); }
+//	int  viewer_get_freq(int n) { return rttyviewer->get_freq(n); }
 
 	void searchDown();
 	void searchUp();

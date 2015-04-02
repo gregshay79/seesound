@@ -26,30 +26,31 @@
 // along with fldigi.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#include <config.h>
+//#include <config.h>
+#include "stdafx.h"
 
 #include "configuration.h"
-#include "confdialog.h"
-#include "xmlreader.h"
-#include "soundconf.h"
-#include "fl_digi.h"
-#include "main.h"
-#include "gettext.h"
-#include "nls.h"
-#include "icons.h"
+//#include "confdialog.h"
+//#include "xmlreader.h"
+//#include "soundconf.h"
+//#include "fl_digi.h"
+//#include "main.h"
+//#include "gettext.h"
+//#include "nls.h"
+//#include "icons.h"
 
 #if USE_HAMLIB
 	#include "hamlib.h"
 	#include "rigclass.h"
 #endif
 
-#include "rigio.h"
-#include "rigxml.h"
+//#include "rigio.h"
+//#include "rigxml.h"
 #include "debug.h"
 
-#include <FL/Fl_Tooltip.H>
+//#include <FL/Fl_Tooltip.H>
 
-#include <unistd.h>
+//#include <unistd.h>
 #include <iostream>
 #include <fstream>
 #include <map>
@@ -76,7 +77,7 @@
 // to
 //#  if defined(WIN32) && !defined(__CYGWIN__) && !defined(__WATCOMC__) && !defined(__WOE32__)
 
-#include <dirent.h>
+//#include <dirent.h>
 
 using namespace std;
 
@@ -248,6 +249,7 @@ public:
 #define ELEM_ ELEM_PROGDEFAULTS
 configuration progdefaults = { CONFIG_LIST };
 
+#if 0
 
 void configuration::writeDefaultsXML()
 {
@@ -972,3 +974,5 @@ void configuration::initFonts(void)
 		FreqControlFontnbr = font_number(FreqControlFontName.c_str());
 
 }
+
+#endif

@@ -62,6 +62,7 @@ inline double decayavg(double average, double input, int weight)
 	return ( ( input - average ) / (double)weight ) + average ;
 }
 
+
 // following are defined inline to provide best performance
 inline double blackman(double x)
 {

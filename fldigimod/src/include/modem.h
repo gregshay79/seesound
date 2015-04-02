@@ -21,12 +21,15 @@
 #ifndef	_MODEM_H
 #define	_MODEM_H
 
+#define _USE_MATH_DEFINES
+
 #include <string>
+#include <math.h>
 
-#include "threads.h"
+//#include "threads.h"
 
-#include "sound.h"
-#include "digiscope.h"
+//#include "sound.h"
+//#include "digiscope.h"
 #include "globals.h"
 #include "morse.h"
 #include "ascii.h"
@@ -36,6 +39,7 @@
 #define SIGSEARCH 5
 
 #define TWOPI (2.0 * M_PI)
+#define	DECIMATE_RATIO	16             // demodulation Filter decimation ratio
 
 class modem {
 public:
@@ -45,10 +49,12 @@ public:
 	static unsigned long tx_sample_count;
 	static unsigned int tx_sample_rate;
 	static bool XMLRPC_CPS_TEST;
+	double	metric;
+
 protected:
 	cMorse	morse;
 	trx_mode mode;
-	SoundBase	*scard;
+//	SoundBase	*scard;
 
 	bool	stopflag;
 	int		fragmentsize;
@@ -62,6 +68,7 @@ protected:
 	double	tx_corr;
 	double  PTTphaseacc;
 	double  PTTchannel[OUTBUFSIZE];
+	double  cf[8];
 
 // for CW modem use only
 	bool	cwTrack;
@@ -70,7 +77,7 @@ protected:
 	double	cwXmtWPM;
 
 	double 	squelch;
-	double	metric;
+	
 	double	syncpos;
 
 	int	backspaces;
@@ -80,7 +87,7 @@ protected:
 	double outbuf[OUTBUFSIZE];
 
 	bool	historyON;
-	Digiscope::scope_mode scopemode;
+	//Digiscope::scope_mode scopemode;
 
 	int scptr;
 
@@ -96,7 +103,7 @@ public:
 
 // these processes must be declared in the derived class
 	virtual void init();
-	virtual void tx_init (SoundBase *sc) = 0;
+//	virtual void tx_init (SoundBase *sc) = 0;
 	virtual void rx_init () = 0;
 	virtual void restart () = 0;
 	virtual void rx_flush() {};
@@ -137,6 +144,7 @@ public:
 	int		get_samplerate() const { return samplerate;}
 	void		set_samplerate(int);
 	void		init_queues();
+	double		decayavg_ms(double average, double input, int ix, double tc);
 
 	void		ModulateXmtr(double *, int);
 	void		ModulateStereo(double *, double *, int, bool sample_flag = true);

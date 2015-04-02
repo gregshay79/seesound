@@ -23,7 +23,7 @@
 #ifndef THREADS_H_
 #define THREADS_H_
 
-#include <config.h>
+//#include <config.h>
 
 #include <pthread.h>
 #include <stdint.h>

@@ -135,13 +135,13 @@ private:
 	int last;
 	int ptr;
 	struct vrot_bins_pair ;
-	vrot_bins_pair * __restrict__ vrot_bins ;
-	cmplx * __restrict__ delay;
+	vrot_bins_pair *  vrot_bins ;
+	cmplx *  delay;
 	double k2;
 public:
 	sfft(int len, int first, int last);
 	~sfft();
-	void run(const cmplx& input, cmplx * __restrict__ result, int stride );
+	void run(const cmplx& input, cmplx *  result, int stride );
 };
 
 

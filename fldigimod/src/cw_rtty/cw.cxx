@@ -27,7 +27,8 @@
 // ----------------------------------------------------------------------------
 
 
-#include <config.h>
+//#include <config.h>
+#include "stdafx.h"
 
 #include <cstring>
 #include <string>
@@ -36,26 +37,30 @@
 #include <fstream>
 #include <cstdlib>
 
-#include "digiscope.h"
-#include "waterfall.h"
-#include "fl_digi.h"
+//#include "digiscope.h"
+//#include "waterfall.h"
+//#include "fl_digi.h"
 #include "fftfilt.h"
 
 #include "cw.h"
 #include "misc.h"
 #include "configuration.h"
-#include "confdialog.h"
+//#include "confdialog.h"
 #include "status.h"
 #include "debug.h"
-#include "FTextRXTX.h"
+//#include "FTextRXTX.h"
 #include "modem.h"
 
-#include "qrunner.h"
+//#include "qrunner.h"
+
+#include "DisplayFunctions.h"
 
 using namespace std;
 
 #define XMT_FILT_LEN 256
 #define QSK_DELAY_LEN 4*XMT_FILT_LEN
+
+status progStatus;
 
 const cw::SOM_TABLE cw::som_table[] = {
 	/* Prosigns */
@@ -125,6 +130,27 @@ const cw::SOM_TABLE cw::som_table[] = {
 	{0, NULL, {0.0}}
 };
 
+wchar_t dummybuffer[128];
+void put_rx_char(unsigned int data, int style)
+{
+	static int i = 0;
+	dummybuffer[i++] = (wchar_t)data;
+	dummybuffer[i] = 0;
+	if (i > 100){
+		i = 0;
+		dummybuffer[i] = 0;
+	}
+}
+
+void put_echo_char(char c){};
+
+int get_tx_char()
+{
+	return (int) '7';
+}
+
+void send_ch(int c) {}
+
 int cw::normalize(float *v, int n, int twodots)
 {
 	if( n == 0 ) return 0 ;
@@ -179,13 +205,13 @@ const char * cw::find_winner (float *inbuf, int twodots)
 		return NULL;
 }
 
-void cw::tx_init(SoundBase *sc)
+void cw::tx_init(/*SoundBase *sc*/)
 {
-	scard = sc;
+//	scard = sc;
 	phaseacc = 0;
 	lastsym = 0;
 	qskphase = 0;
-	if (progdefaults.pretone) pretone();
+	/*if (progdefaults.pretone)*/ pretone();
 
 	symbols = 0;
 	acc_symbols = 0;
@@ -203,7 +229,7 @@ void cw::rx_init()
 	cw_rr_current = 0;
 	cw_ptr = 0;
 	agc_peak = 0;
-	set_scope_mode(Digiscope::SCOPE);
+	//set_scope_mode(Digiscope::SCOPE);
 
 	update_Status();
 	usedefaultWPM = false;
@@ -212,30 +238,32 @@ void cw::rx_init()
 
 void cw::init()
 {
-	bool wfrev = wf->Reverse();
-	bool wfsb = wf->USB();
-	reverse = wfrev ^ !wfsb;
+//	bool wfrev = wf->Reverse();
+//	bool wfsb = wf->USB();
+//	reverse = wfrev ^ !wfsb;
 
 	if (progdefaults.StartAtSweetSpot)
-		set_freq(progdefaults.CWsweetspot);
+		set_freq(progdefaults.CWsweetspot );
 	else if (progStatus.carrier != 0) {
 		set_freq(progStatus.carrier);
 #if !BENCHMARK_MODE
 		progStatus.carrier = 0;
 #endif
 	} else
-		set_freq(wf->Carrier());
+//		set_freq(wf->Carrier());
 
 	trackingfilter->reset();
 	cw_adaptive_receive_threshold = (long int)trackingfilter->run(2 * cw_send_dot_length);
-	put_cwRcvWPM(cw_send_speed);
+	//put_cwRcvWPM(cw_send_speed);
 	for (int i = 0; i < OUTBUFSIZE; i++)
 		outbuf[i] = qskbuf[i] = 0.0;
 	rx_init();
 	use_paren = progdefaults.CW_use_paren;
-	prosigns = progdefaults.CW_prosigns;
+	prosigns = "=~<>%+&{}";// progdefaults.CW_prosigns;
 	stopflag = false;
 	maxval = 0;
+	progStatus.sldrSquelchValue = 0.10;
+	progStatus.sqlonoff = true;
 }
 
 cw::~cw() {
@@ -265,7 +293,7 @@ cw::cw() : modem()
 	samplerate = CWSampleRate;
 	fragmentsize = CWMaxSymLen;
 
-	cw_speed  = progdefaults.CWspeed;
+	cw_speed = progdefaults.CWspeed;
 	bandwidth = progdefaults.CWbandwidth;
 
 	cw_send_speed = cw_speed;
@@ -274,14 +302,14 @@ cw::cw() : modem()
 	cw_noise_spike_threshold = cw_adaptive_receive_threshold / 4;
 	cw_send_dot_length = DOT_MAGIC / cw_send_speed;
 	cw_send_dash_length = 3 * cw_send_dot_length;
-	symbollen = (int)round(samplerate * 1.2 / progdefaults.CWspeed);
-	fsymlen = (int)round(samplerate * 1.2 / progdefaults.CWfarnsworth);
+	symbollen = (int)round(samplerate * 1.2 / progdefaults.CWspeed );
+	fsymlen = (int)round(samplerate * 1.2 / progdefaults.CWfarnsworth );
 
 	memset(rx_rep_buf, 0, sizeof(rx_rep_buf));
 
 // block of variables that get updated each time speed changes
 	pipesize = (22 * samplerate * 12) / (progdefaults.CWspeed * 160);
-	if (pipesize < 0) pipesize = 512;
+	if (pipesize < 512) pipesize = 512;
 	if (pipesize > MAX_PIPE_SIZE) pipesize = MAX_PIPE_SIZE;
 
 	cwTrack = true;
@@ -305,18 +333,18 @@ cw::cw() : modem()
 
 	bandwidth = progdefaults.CWbandwidth;
 	if (use_matched_filter)
-		progdefaults.CWbandwidth = bandwidth = 2.0 * progdefaults.CWspeed / 1.2;
+		progdefaults.CWbandwidth =  bandwidth = 2.0 * progdefaults.CWspeed / 1.2;
 
 	hilbert = new C_FIR_filter(); // hilbert transform used by FFT filter
 	hilbert->init_hilbert(37, 1);
 
 	cw_FIR_filter = new C_FIR_filter();
-	cw_FIR_filter->init_lowpass (CW_FIRLEN, DEC_RATIO, progdefaults.CWspeed/(1.2 * samplerate));
+	cw_FIR_filter->init_lowpass (CW_FIRLEN, DECIMATE_RATIO, progdefaults.CWspeed /(1.2 * samplerate));
 
 //overlap and add filter length should be a factor of 2
 // low pass implementation
 	FilterFFTLen = 4096;
-	cw_FFT_filter = new fftfilt(progdefaults.CWspeed/(1.2 * samplerate), FilterFFTLen);
+	cw_FFT_filter = new fftfilt(progdefaults.CWspeed /(1.2 * samplerate), FilterFFTLen);
 
 // transmit filtering
 
@@ -336,48 +364,48 @@ cw::cw() : modem()
 //		FilterFFTLen);
 
 // bit filter based on 10 msec rise time of CW waveform
-	int bfv = (int)(samplerate * .010 / DEC_RATIO);
+	int bfv = (int)(samplerate * .010 / DECIMATE_RATIO);
 	bitfilter = new Cmovavg(bfv);
 
 	trackingfilter = new Cmovavg(TRACKING_FILTER_SIZE);
 
 	makeshape();
 	sync_parameters();
-	REQ(static_cast<void (waterfall::*)(int)>(&waterfall::Bandwidth), wf, (int)bandwidth);
-	REQ(static_cast<int (Fl_Value_Slider2::*)(double)>(&Fl_Value_Slider2::value), sldrCWbandwidth, (int)bandwidth);
+	//REQ(static_cast<void (waterfall::*)(int)>(&waterfall::Bandwidth), wf, (int)bandwidth);
+	//REQ(static_cast<int (Fl_Value_Slider2::*)(double)>(&Fl_Value_Slider2::value), sldrCWbandwidth, (int)bandwidth);
 	update_Status();
 }
 
 // SHOULD ONLY BE CALLED FROM THE rx_processing loop
 void cw::reset_rx_filter()
 {
-	if (use_fft_filter != progdefaults.CWuse_fft_filter ||
-		use_matched_filter != progdefaults.CWmfilt ||
-		cw_speed != progdefaults.CWspeed ||
-		(bandwidth != progdefaults.CWbandwidth && !use_matched_filter)) {
+	if (use_fft_filter != false ||
+		use_matched_filter != false ||
+		cw_speed != 18 ||
+		(bandwidth != 150 && !use_matched_filter)) {
 
-		use_fft_filter = progdefaults.CWuse_fft_filter;
-		use_matched_filter = progdefaults.CWmfilt;
-		cw_send_speed = cw_speed = progdefaults.CWspeed;
+		use_fft_filter = false ;
+		use_matched_filter = false ;
+		cw_send_speed = cw_speed = 18 ;
 
 		if (use_matched_filter)
-			progdefaults.CWbandwidth = bandwidth = 2.0 * progdefaults.CWspeed / 1.2;
+			progdefaults.CWbandwidth =  bandwidth = 2.0 * 18 / 1.2;
 		else
-			bandwidth = progdefaults.CWbandwidth;
+			bandwidth = 150 ;
 
 		if (use_fft_filter) { // FFT filter
-			cw_FFT_filter->create_lpf(progdefaults.CWspeed/(1.2 * samplerate));
+			cw_FFT_filter->create_lpf(progdefaults.CWspeed /(1.2 * samplerate));
 			FFTphase = 0;
 		} else { // FIR filter
-			cw_FIR_filter->init_lowpass (CW_FIRLEN, DEC_RATIO, progdefaults.CWspeed/(1.2 * samplerate));
+			cw_FIR_filter->init_lowpass (CW_FIRLEN, DECIMATE_RATIO, progdefaults.CWspeed /(1.2 * samplerate));
 			FIRphase = 0;
 		}
-		REQ(static_cast<void (waterfall::*)(int)>(&waterfall::Bandwidth),
-			wf, (int)bandwidth);
-		REQ(static_cast<int (Fl_Value_Slider2::*)(double)>(&Fl_Value_Slider2::value),
-			sldrCWbandwidth, (int)bandwidth);
+		//REQ(static_cast<void (waterfall::*)(int)>(&waterfall::Bandwidth),
+		//	wf, (int)bandwidth);
+		//REQ(static_cast<int (Fl_Value_Slider2::*)(double)>(&Fl_Value_Slider2::value),
+		//	sldrCWbandwidth, (int)bandwidth);
 
-		pipesize = (22 * samplerate * 12) / (progdefaults.CWspeed * 160);
+		pipesize = (22 * samplerate * 12) / ( progdefaults.CWspeed * 160);
 		if (pipesize < 0) pipesize = 512;
 		if (pipesize > MAX_PIPE_SIZE) pipesize = MAX_PIPE_SIZE;
 
@@ -385,8 +413,8 @@ void cw::reset_rx_filter()
 		cw_noise_spike_threshold = cw_adaptive_receive_threshold / 4;
 		cw_send_dot_length = DOT_MAGIC / cw_send_speed;
 		cw_send_dash_length = 3 * cw_send_dot_length;
-		symbollen = (int)round(samplerate * 1.2 / progdefaults.CWspeed);
-		fsymlen = (int)round(samplerate * 1.2 / progdefaults.CWfarnsworth);
+		symbollen = (int)round(samplerate * 1.2 / progdefaults.CWspeed );
+		fsymlen = (int)round(samplerate * 1.2 / progdefaults.CWfarnsworth );
 
 		phaseacc = 0.0;
 		FFTphase = 0.0;
@@ -402,10 +430,10 @@ void cw::reset_rx_filter()
 		agc_peak = 0;
 		clear_syncscope();
 	}
-	if (lower_threshold != progdefaults.CWlower ||
-		upper_threshold != progdefaults.CWupper) {
-		lower_threshold = progdefaults.CWlower;
-		upper_threshold = progdefaults.CWupper;
+	if (lower_threshold != .4  ||
+		upper_threshold != .6 ) {
+		lower_threshold = .4 ;
+		upper_threshold = .6 ;
 		clear_syncscope();
 	}
 }
@@ -428,7 +456,7 @@ void cw::sync_transmit_parameters()
 	if (symbollen != nusymbollen ||
 		nufsymlen != fsymlen ||
 		risetime  != progdefaults.CWrisetime ||
-		QSKshape  != progdefaults.QSKshape) {
+		QSKshape  != 0) {
 		risetime = progdefaults.CWrisetime;
 		QSKshape = progdefaults.QSKshape;
 		symbollen = nusymbollen;
@@ -442,11 +470,11 @@ void cw::sync_parameters()
 	sync_transmit_parameters();
 
 // check if user changed the tracking or the cw default speed
-	if ((cwTrack != progdefaults.CWtrack) ||
-		(cw_send_speed != progdefaults.CWspeed)) {
+	if ((cwTrack != progdefaults.CWtrack ) ||
+		(cw_send_speed != progdefaults.CWspeed )) {
 		trackingfilter->reset();
 		cw_adaptive_receive_threshold = 2 * cw_send_dot_length;
-		put_cwRcvWPM(cw_send_speed);
+		//put_cwRcvWPM(cw_send_speed);
 	}
 	cwTrack = progdefaults.CWtrack;
 	cw_send_speed = progdefaults.CWspeed;
@@ -454,10 +482,10 @@ void cw::sync_parameters()
 // Receive parameters:
 	lowerwpm = cw_send_speed - progdefaults.CWrange;
 	upperwpm = cw_send_speed + progdefaults.CWrange;
-	if (lowerwpm < progdefaults.CWlowerlimit)
+	if (lowerwpm < 5)
 		lowerwpm = progdefaults.CWlowerlimit;
-	if (upperwpm > progdefaults.CWupperlimit)
-		upperwpm = progdefaults.CWupperlimit;
+	if (upperwpm > 50 )
+		upperwpm = 50 ;
 	cw_lower_limit = 2 * DOT_MAGIC / upperwpm;
 	cw_upper_limit = 2 * DOT_MAGIC / lowerwpm;
 
@@ -514,7 +542,7 @@ void cw::update_tracking(int idot, int idash)
 
 void cw::update_Status()
 {
-	put_MODEstatus("CW %s Rx %d", usedefaultWPM ? "*" : " ", cw_receive_speed);
+	//put_MODEstatus("CW %s Rx %d", usedefaultWPM ? "*" : " ", cw_receive_speed);
 
 }
 
@@ -527,6 +555,7 @@ void cw::update_Status()
 
 void cw::update_syncscope()
 {
+#if 0
 	if (pipesize < 0 || pipesize > MAX_PIPE_SIZE)
 		return;
 
@@ -542,13 +571,14 @@ void cw::update_syncscope()
 	clrcount = CLRCOUNT;
 	put_cwRcvWPM(cw_receive_speed);
 	update_Status();
+#endif
 }
 
 void cw::clear_syncscope()
 {
-	set_scope_xaxis_1(upper_threshold);
-	set_scope_xaxis_2(lower_threshold);
-	set_scope(clearpipe, pipesize, false);
+//	set_scope_xaxis_1(upper_threshold);
+//	set_scope_xaxis_2(lower_threshold);
+//	set_scope(clearpipe, pipesize, false);
 	clrcount = CLRCOUNT;
 }
 
@@ -567,22 +597,57 @@ cmplx cw::mixer(cmplx in)
 // cw_rxprocess()
 // Called with a block (size SCBLOCKSIZE samples) of audio.
 //
-//======================================================================
+//===c===================================================================
+
+double bottom = 0.;
+int gateCount = 0;
+int agcGate = 0;
+int key = 0;
 
 void cw::decode_stream(double value)
 {
 	const char *c, *somc;
 	char *cptr;
+	int maxc;
+	static double valuez2=0.,valuez=0.;
 
+	static double envelope = 0.;
 
+	envelope = decayavg_ms(envelope, value,1, 15.0 /*ms*/);
+
+	value = envelope;
+
+	if (envelope < bottom) 
+		bottom = decayavg_ms(bottom, envelope, 3, 10.0);
+	else
+		bottom = decayavg_ms(bottom, envelope, 2, 50000.);
+
+	if (envelope > 5 * bottom)   // 12dB above bottom
+		gateCount++;
+	else
+		gateCount = 0;  
+	
+	if (gateCount > 20)  // if level above threshold for > 20ms, open agcgate
+		agcGate = 1;
+	else
+		agcGate = 0;
+
+	mm.set(2, (double)agcGate);
+	
 // Compute a variable threshold value for tone detection
 // Fast attack and slow decay.
-	if (value > agc_peak)
-		agc_peak = decayavg(agc_peak, value, 20);
-	else
-		agc_peak = decayavg(agc_peak, value, 800);
-
+	if (agcGate) {
+//		if (value > agc_peak)
+			agc_peak = decayavg(agc_peak, valuez2, 100);
+//		else
+//			agc_peak = decayavg(agc_peak, value, 50); // was 800
+	}
+	valuez2 = valuez;
+	valuez = value;
 	metric = clamp(agc_peak * 2e3 , 0.0, 100.0);
+
+	mm.set(0, bottom*5.);
+	mm.set(1, agc_peak);
 
 // save correlation amplitude value for the sync scope
 // normalize if possible
@@ -591,39 +656,48 @@ void cw::decode_stream(double value)
 	else
 		value = 0;
 
+	mm.set(3, envelope);
+
 	pipe[pipeptr] = value;
 	if (++pipeptr == pipesize) pipeptr = 0;
+
+	//mm.set(0, value);
 
 	if (!progStatus.sqlonoff || metric > progStatus.sldrSquelchValue ) {
 // Power detection using hysterisis detector
 // upward trend means tone starting
-		if ((value > progdefaults.CWupper) && (cw_receive_state != RS_IN_TONE)) {
+		if ((value > progdefaults.CWupper ) && (cw_receive_state != RS_IN_TONE)) {
 			handle_event(CW_KEYDOWN_EVENT, NULL);
+			key = 1;
 		}
 // downward trend means tone stopping
-		if ((value < progdefaults.CWlower) && (cw_receive_state == RS_IN_TONE)) {
+		if ((value < progdefaults.CWlower ) && (cw_receive_state == RS_IN_TONE)) {
 			handle_event(CW_KEYUP_EVENT, NULL);
+			key = 0;
 		}
 	}
 
+	mm.set(4, (double)key);
+
 	if (handle_event(CW_QUERY_EVENT, &c) == CW_SUCCESS) {
 		update_syncscope();
-		if (progdefaults.CWuseSOMdecoding) {
+		if (progdefaults.CWuseSOMdecoding ) {
 			somc = find_winner(cw_buffer, cw_adaptive_receive_threshold);
 			cptr = (char*)somc;
+			maxc = 4;
 			if (somc != NULL) {
-				while (*cptr != '\0')
-					put_rx_char(progdefaults.rx_lowercase ? tolower(*cptr++) : *cptr++,FTextBase::CTRL);
+				while ((*cptr != '\0') && (maxc-- > 0))
+					put_rx_char(progdefaults.rx_lowercase ? tolower(*cptr++) : *cptr++,0 /*FTextBase::CTRL*/ );
 			}
 			if (strlen(c) == 1 && *c == ' ')
-				put_rx_char(progdefaults.rx_lowercase ? tolower(*c) : *c);
+				put_rx_char(progdefaults.rx_lowercase ? tolower(*c) : *c, 0);
 			cw_ptr = 0;
 			memset(cw_buffer, 0, sizeof(cw_buffer));
 		} else {
 			if (strlen(c) == 1)
-				put_rx_char(progdefaults.rx_lowercase ? tolower(*c) : *c);
+				put_rx_char(progdefaults.rx_lowercase ? tolower(*c) : *c, 0);
 			else while (*c)
-				put_rx_char(progdefaults.rx_lowercase ? tolower(*c++) : *c++, FTextBase::CTRL);
+				put_rx_char(false  ? tolower(*c++) : *c++, 0 /* FTextBase::CTRL*/ );
 		}
 	}
 }
@@ -648,8 +722,8 @@ void cw::rx_FFTprocess(const double *buf, int len)
 		for (int i = 0; i < n; i++) {
 // update the basic sample counter used for morse timing
 			++smpl_ctr;
-
-			if (smpl_ctr % DEC_RATIO) continue; // decimate by DEC_RATIO
+			
+			if (smpl_ctr % DECIMATE_RATIO) continue; // decimate by DEC_RATIO
 
 // demodulate
 			FFTvalue = abs(zp[i]);
@@ -667,6 +741,7 @@ void cw::rx_FIRprocess(const double *buf, int len)
 	cmplx z;
 
 	while (len-- > 0) {
+//		mm.set(2, *buf);
 		z = cmplx ( *buf * cos(FIRphase), *buf * sin(FIRphase) );
 		buf++;
 
@@ -676,7 +751,7 @@ void cw::rx_FIRprocess(const double *buf, int len)
 		if (cw_FIR_filter->run ( z, z )) {
 
 // update the basic sample counter used for morse timing
-			smpl_ctr += DEC_RATIO;
+			smpl_ctr += DECIMATE_RATIO;
 // demodulate
 			FIRvalue = abs(z);
 			FIRvalue = bitfilter->run(FIRvalue);
@@ -808,6 +883,9 @@ int cw::handle_event(int cw_event, const char **c)
 			}
 		}
 		last_element = element_usec;
+
+		mm.set(5, (double) element_usec/1000.);
+
 // ok... do we have a dit or a dah?
 // a dot is anything shorter than 2 dot times
 		if (element_usec <= cw_adaptive_receive_threshold) {
@@ -966,7 +1044,7 @@ void cw::nb_filter(double *output, double *qsk, int len)
 {
 // fft implementation of 
 	if (nbfreq != tx_frequency ||
-		nbpf != progdefaults.CW_bpf) {
+		nbpf != progdefaults.CW_bpf ) {
 
 		nbfreq = tx_frequency;
 		nbpf = progdefaults.CW_bpf;
@@ -996,7 +1074,7 @@ void cw::nb_filter(double *output, double *qsk, int len)
 
 //			appendfile(xmt_signal, qsk_signal, n);
 
-			if (progdefaults.QSK)
+			if (progdefaults.QSK )
 				ModulateStereo(xmt_signal, qsk_signal, n);
 			else
 				ModulateXmtr(xmt_signal, n);
@@ -1049,11 +1127,11 @@ void cw::send_symbol(int bits, int len)
 
 	kpre = (int)(progdefaults.CWpre * 8);
 	if (kpre > symlen) kpre = symlen;
-	if (progdefaults.QSK) {
+	if (progdefaults.QSK ) {
 		kpre = (int)(progdefaults.CWpre * 8);
 		if (kpre > symlen) kpre = symlen;
 
-		if (progdefaults.CWnarrow) {
+		if (progdefaults.CWnarrow ) {
 			if (keydown - 2*knum < 0)
 				kpost = knum + (int)(progdefaults.CWpost * 8);
 			else
@@ -1135,7 +1213,7 @@ void cw::send_symbol(int bits, int len)
 			sample = 0;
 
 			int next = keydown - knum;
-			if (progdefaults.CWnarrow)
+			if (progdefaults.CWnarrow )
 				next = keydown - 2*knum;
 
 			for (int i = 0; i < next; i++, sample++)
@@ -1167,10 +1245,10 @@ void cw::send_symbol(int bits, int len)
 	}
 
 	if (duration > 0) {
-		if (progdefaults.CW_bpf_on)
+		if (progdefaults.CW_bpf_on )
 			nb_filter(outbuf, qskbuf, duration);
 		else {
-			if (progdefaults.QSK)
+			if (progdefaults.QSK )
 				ModulateStereo(outbuf, qskbuf, duration);
 			else
 				ModulateXmtr(outbuf, duration);
@@ -1219,7 +1297,7 @@ void cw::send_ch(int ch)
 
 // loop sending out binary bits of cw character
 // at WPM or Farnsworth rate
-	if (progdefaults.CWusefarnsworth && (progdefaults.CWspeed <= progdefaults.CWfarnsworth))
+	if (progdefaults.CWusefarnsworth && (progdefaults.CWspeed <= progdefaults.CWfarnsworth ))
 		flen = fsymlen;
 	else
 		flen = symbollen;
@@ -1233,7 +1311,7 @@ void cw::send_ch(int ch)
 
 // inter character space at WPM/FWPM rate
 	flen = symbollen;
-	if (progdefaults.CWusefarnsworth && (progdefaults.CWspeed <= progdefaults.CWfarnsworth))
+	if (progdefaults.CWusefarnsworth && (progdefaults.CWspeed <= progdefaults.CWfarnsworth ))
 		flen += (symbollen - fsymlen)*charlen;
 
 	while(flen - symbollen > 0) {
@@ -1242,7 +1320,7 @@ void cw::send_ch(int ch)
 	}
 	if (flen) send_symbol(0, flen);
 
-	FL_AWAKE();
+	// FL_AWAKE();  // Call idle loop
 
 	if (ch != -1) {
 		string prtstr = morse.tx_print(ch);
@@ -1250,7 +1328,7 @@ void cw::send_ch(int ch)
 			put_echo_char(progdefaults.rx_lowercase ? tolower(prtstr[0]) : prtstr[0]);
 		else
 			for (size_t n = 0; n < prtstr.length(); n++)
-				put_echo_char(progdefaults.rx_lowercase ? tolower(prtstr[n]) : prtstr[n], FTextBase::CTRL);
+				put_echo_char(progdefaults.rx_lowercase ? tolower(prtstr[n]) : prtstr[n] /*FTextBase::CTRL*/ );
 	}
 }
 
@@ -1267,14 +1345,14 @@ int cw::tx_process()
 	if (use_paren != progdefaults.CW_use_paren ||
 		prosigns != progdefaults.CW_prosigns) {
 		use_paren = progdefaults.CW_use_paren;
-		prosigns = progdefaults.CW_prosigns;
+	prosigns = progdefaults.CW_prosigns;
 		morse.init();
 	}
 
 	c = get_tx_char();
-	if (c == GET_TX_CHAR_ETX || stopflag) {
+	if (c == -3 /*GET_TX_CHAR_ETX*/ || stopflag) {
 		stopflag = false;
-		if (progdefaults.CW_bpf_on) { // flush the transmit bandpass filter
+		if (progdefaults.CW_bpf_on ) { // flush the transmit bandpass filter
 			int n = cw_xmt_filter->flush_size();
 			for (int i = 0; i < n; i++) outbuf[i] = 0;
 			nb_filter(outbuf, outbuf, n);
@@ -1302,7 +1380,7 @@ void cw::incWPM()
 	if (progdefaults.CWspeed < progdefaults.CWupperlimit) {
 		progdefaults.CWspeed++;
 		sync_parameters();
-		set_CWwpm();
+		//set_CWwpm();
 		update_Status();
 	}
 }
@@ -1313,7 +1391,7 @@ void cw::decWPM()
 	if (usedefaultWPM) return;
 	if (progdefaults.CWspeed > progdefaults.CWlowerlimit) {
 		progdefaults.CWspeed--;
-		set_CWwpm();
+		//set_CWwpm();
 		sync_parameters();
 		update_Status();
 	}

@@ -25,13 +25,18 @@
 #ifndef _CONFIGURATION_H
 #define _CONFIGURATION_H
 
+
+
 #include <string>
 #include <math.h>
 
 #include "rtty.h"
-#include "waterfall.h"
+//#include "waterfall.h"
 #include "lookupcall.h"
-#include "psk_browser.h"
+//#include "psk_browser.h"
+
+#include "Fl_XColor.H"
+#include "data_io.h"
 
 #if defined(__linux__)
 #  define DEFAULT_PTTDEV "/dev/ttyS0"
@@ -59,6 +64,23 @@
 #  define DEFAULT_HAMRIGDEVICE "/dev/rig"
 #endif
 
+typedef unsigned char uchar;
+
+struct RGB {
+	uchar R;
+	uchar G;
+	uchar B;
+};
+
+struct RGBI {
+	uchar R;
+	uchar G;
+	uchar B;
+	uchar I;
+};
+
+#define Fl_Color int
+#define Fl_Font int
 
 // Format: ELEM_(TYPE, VARIABLE-NAME, TAG-STRING, DOC-STRING, DEFAULT-VALUE)
 // Variables that are not saved to the xml file have empty TAG-STRINGs and DOC-STRINGs
@@ -183,7 +205,7 @@
               3000)                                                                     \
         ELEM_(double, CWsweetspot, "CWSWEETSPOT",                                       \
               "Default CW tracking point (Hz)",                                         \
-              1000)                                                                     \
+              1143)                                                                     \
         ELEM_(double, RTTYsweetspot, "RTTYSWEETSPOT",                                   \
               "Default RTTY tracking point (Hz)",                                       \
               1000)                                                                     \
@@ -192,7 +214,7 @@
               1000)                                                                     \
         ELEM_(bool, StartAtSweetSpot, "STARTATSWEETSPOT",                               \
               "Always start new modems at sweet spot frequencies",                      \
-              false)                                                                    \
+              true)                                                                    \
         ELEM_(bool, CWOffset, "CWOFFSET",                                               \
               "Select if waterfall should compensate for BFO offset in CW",             \
               false)                                                                    \
@@ -219,7 +241,7 @@
               "  0: do nothing; 1: change AFC width or decoder bandwidth;\n"            \
               "  2: signal search; 3: change squelch level; 4: change modem carrier;\n" \
               "  5: change modem; 6: scroll visible area.  The default is 4.",          \
-              waterfall::WF_CARRIER)                                                    \
+              4 /*waterfall::WF_CARRIER*/)                                              \
         ELEM_(bool, rx_lowercase, "RX_LOWERCASE",                                       \
               "Print Rx in lowercase for CW, RTTY, CONTESTIA and THROB",                \
               false)                                                                    \
@@ -404,7 +426,7 @@
               false)                                                                    \
         ELEM_(bool, CWuseSOMdecoding, "CWUSESOMDECODING",                               \
               "Self Organizing Map decoding",                                           \
-              false)                                                                    \
+              true)                                                                    \
         ELEM_(int, CWrange, "CWRANGE",                                                  \
               "Tracking range for CWTRACK (WPM)",                                       \
               10)                                                                       \
@@ -616,9 +638,9 @@
               "Always transmit lowest tone at 500 Hz",                                  \
               false)                                                                    \
         /* Waterfall & UI */                                                            \
-        ELEM_(uchar, red, "", "",  0)                                                   \
-        ELEM_(uchar, green, "", "",  255)                                               \
-        ELEM_(uchar, blue, "", "",  255)                                                \
+        ELEM_(unsigned char, red, "", "",  0)                                                   \
+        ELEM_(unsigned char, green, "", "",  255)                                               \
+        ELEM_(unsigned char, blue, "", "",  255)                                                \
         ELEM_(bool, MultiColorWF, "", "",  false)                                       \
         ELEM_(int, wfPreFilter, "WFPREFILTER",                                          \
               "Waterfal FFT prefilter window function. Values are as follows:\n"        \
@@ -989,7 +1011,7 @@
         ELEM_(int, btnAudioIOis, "AUDIOIO",                                             \
               "Audio subsystem.  Values are as follows:\n"                              \
               "  0: OSS; 1: PortAudio; 2: PulseAudio; 3: File I/O",                     \
-              SND_IDX_NULL)                                                             \
+              0 /*SND_IDX_NULL*/)                                                             \
         ELEM_(std::string, OSSdevice, "OSSDEVICE",                                      \
               "OSS device name",                                                        \
               "")                                                                       \
@@ -1037,7 +1059,7 @@
               "Sample rate conversion type. Values are as follows:\n"                   \
               "  0: Best SINC; 1: Medium SINC; 2: Fastest SINC; 3: ZOH; 4: Linear.\n"   \
               "The default is 2.",                                                      \
-              SRC_SINC_FASTEST)                                                         \
+              2 /*SRC_SINC_FASTEST*/)                                                         \
         ELEM_(int, RX_corr, "RXCORR",                                                   \
               "Input (RX) sample rate correction (PPM)",                                \
               0)                                                                        \
@@ -1074,7 +1096,7 @@
               true)                                                                     \
         ELEM_(bool, cutnbrs, "CUTNBRS",                                                 \
               "Send CW cut numbers",                                                    \
-              false)                                                                    \
+              false)																	\
         ELEM_(RGB, bwsrSliderColor, "BWSRSLIDERCOLOR",                                  \
               "Background color of signal browser detect level",                        \
               {185, 211, 238})                                                          \
@@ -1408,7 +1430,7 @@
               FL_HELVETICA)                                                             \
         ELEM_(int, ViewerFontsize, "VIEWERFONTSIZE",                                    \
               "Signal Viewer font size",                                                \
-              FL_NORMAL_SIZE)                                                           \
+              8 /*FL_NORMAL_SIZE*/)                                                           \
                                                                                         \
         ELEM_(Fl_Color, Sql1Color, "SQL1COLOR",                                         \
               "UI SQL button select color 1",                                           \
@@ -1702,7 +1724,7 @@
 
 
 // declare the struct
-#define ELEM_DECLARE_CONFIGURATION(type_, var_, tag_, ...) type_ var_;
+#define ELEM_DECLARE_CONFIGURATION(type_, var_, ...) type_ var_;
 #undef ELEM_
 #define ELEM_ ELEM_DECLARE_CONFIGURATION
 struct configuration
@@ -1724,11 +1746,12 @@ struct configuration
 	int  BaudRate(size_t);
 	int  nBaudRate(const char *);
 	void initFonts(void);
+	
 };
 
 extern configuration progdefaults;
 
-extern Fl_Font font_number(const char* name);
+//extern Fl_Font font_number(const char* name);
 
 enum { SAMPLE_RATE_UNSET = -1, SAMPLE_RATE_AUTO, SAMPLE_RATE_NATIVE, SAMPLE_RATE_OTHER };
 
