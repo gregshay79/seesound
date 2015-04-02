@@ -44,7 +44,7 @@
 #	include <stacktrace.h>
 
 #	ifndef NO_LOCKS
-#               include "debug.h"
+//#               include "debug.h"
 #		define FL_LOCK(x)                                       \
                 do {                                                    \
                         switch (GET_THREAD_ID()) {                      \

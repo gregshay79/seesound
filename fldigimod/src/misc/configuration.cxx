@@ -39,6 +39,8 @@
 //#include "nls.h"
 //#include "icons.h"
 
+#include "FL\Enumerations.H"
+
 #if USE_HAMLIB
 	#include "hamlib.h"
 	#include "rigclass.h"
@@ -46,7 +48,7 @@
 
 //#include "rigio.h"
 //#include "rigxml.h"
-#include "debug.h"
+//#include "debug.h"
 
 //#include <FL/Fl_Tooltip.H>
 

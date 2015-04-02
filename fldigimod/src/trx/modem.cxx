@@ -43,9 +43,12 @@
 #include "macros.h"
 
 #include "status.h"
-#include "debug.h"
+//#include "debug.h"
 
 using namespace std;
+
+#    define CLAMP(x, low, high) (((x)>(high))?(high):(((x)<(low))?(low):(x)))
+
 
 modem *null_modem = 0;
 modem *cw_modem = 0;
@@ -283,7 +286,7 @@ void modem::set_freqlock(bool on)
 
 double modem::get_txfreq(void) const
 {
-	if (unlikely(!(cap & CAP_TX)))
+	if (/*unlikely*/(!(cap & CAP_TX)))
 		return 0;
 	else if (/*mailserver && */ progdefaults.PSKmailSweetSpot)
 		return progdefaults.PSKsweetspot;

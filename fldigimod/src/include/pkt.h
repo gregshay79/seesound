@@ -36,7 +36,7 @@
 #include "complex.h"
 #include "modem.h"
 #include "globals.h"
-#include "debug.h"
+//#include "debug.h"
 //#include "filters.h"
 //#include "fftfilt.h"
 #include "digiscope.h"

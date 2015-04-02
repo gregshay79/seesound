@@ -77,7 +77,7 @@ extern THREAD_ID_TYPE thread_id_;
 
 
 #ifndef NDEBUG
-#  include "debug.h"
+//#  include "debug.h"
 bool thread_in_list(int id, const int* list);
 #  define ENSURE_THREAD(...)						\
 	do {								\

@@ -20,7 +20,6 @@
  *    along with fldigi.  If not, see <http://www.gnu.org/licenses/>.
  * -----------------------------------------------------------------------------
  */
-
 #ifndef UTIL_H
 #define UTIL_H
 
@@ -37,7 +36,7 @@ extern "C" {
 #ifndef __STDC_FORMAT_MACROS
 #    define __STDC_FORMAT_MACROS 1
 #endif
-#include <inttypes.h>
+//#include <inttypes.h>
 
 #ifndef powerof2
 #    define powerof2(n) ((((n) - 1) & (n)) == 0)

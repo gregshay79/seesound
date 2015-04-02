@@ -47,7 +47,7 @@
 #include "configuration.h"
 //#include "confdialog.h"
 #include "status.h"
-#include "debug.h"
+//#include "debug.h"
 //#include "FTextRXTX.h"
 #include "modem.h"
 
@@ -61,6 +61,8 @@ using namespace std;
 #define QSK_DELAY_LEN 4*XMT_FILT_LEN
 
 status progStatus;
+
+int round (double input) { return (input +0.5);}
 
 const cw::SOM_TABLE cw::som_table[] = {
 	/* Prosigns */

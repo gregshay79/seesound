@@ -43,7 +43,7 @@
 #include "soundconf.h"
 #include "ringbuffer.h"
 #include "qrunner.h"
-#include "debug.h"
+//#include "debug.h"
 #include "nullmodem.h"
 #include "macros.h"
 

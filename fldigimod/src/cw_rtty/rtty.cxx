@@ -43,7 +43,7 @@ using namespace std;
 #include "status.h"
 #include "digiscope.h"
 #include "trx.h"
-#include "debug.h"
+//#include "debug.h"
 #include "synop.h"
 #include "main.h"
 #include "modem.h"

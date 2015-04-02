@@ -16,7 +16,7 @@
 #define MAX_LOADSTRING 100
 
 
-#define AUDIO_BUFFER_SIZE 256
+#define AUDIO_BUFFER_SIZE 512
 #define MATH_BUFFER_SIZE AUDIO_BUFFER_SIZE
 #define RM_SIZE MATH_BUFFER_SIZE
 #define FFT_SIZE MATH_BUFFER_SIZE
@@ -313,9 +313,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 			 //mm.draw(hdc, 8+1024-2, 128 + 8, 256, 3200., 2, RGB(200, 100, 100));
 			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 2., 2, RGB(128, 128, 128));
-			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 150., 0, RGB(0, 250, 250));
-			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 150., 1, RGB(250, 250, 0));
-			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 150., 3, RGB(0, 255, 0));
+			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 1500., 0, RGB(0, 250, 250));
+			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 1500., 1, RGB(250, 250, 0));
+			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 1500., 3, RGB(0, 255, 0));
 			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 2., 4, RGB(255, 0, 0));
 
 			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 500., 5, RGB(250, 250, 250));
@@ -354,7 +354,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 #endif
 
 
-#if 0
+#if 1
 			 //Autocorrelation
 
 
