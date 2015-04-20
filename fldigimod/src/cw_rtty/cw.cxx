@@ -62,7 +62,7 @@ using namespace std;
 
 status progStatus;
 
-int round (double input) { return (input +0.5);}
+double round (double input) { return (input +0.5);}
 
 const cw::SOM_TABLE cw::som_table[] = {
 	/* Prosigns */
