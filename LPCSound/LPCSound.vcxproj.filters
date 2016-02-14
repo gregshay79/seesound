@@ -57,6 +57,15 @@
     <ClCompile Include="..\fldigimod\src\trx\modem.cxx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\syncDecode\syncDecode\syncDecode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Library\filters\hilbertwindow6.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Library\filters\hilbertwindow7.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LPCSound.h">

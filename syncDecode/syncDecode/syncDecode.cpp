@@ -1,20 +1,19 @@
 // syncDecode.cpp : Defines the entry point for the console application.
 //
-
-#include <Windows.h>
 #include "stdafx.h"
+#include <Windows.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-extern "C" double hilbertKernel128[];
-extern "C" double hilbertKernel64[];
-extern "C" double LPFKernel64[];
-extern "C" double BP500Kernel64[];
+extern  double hilbertKernel128[];
+extern  double hilbertKernel64[];
+extern  double LPFKernel64[];
+extern  double BP500Kernel64[];
 
 
-
-double pi = 3.141592653589793238462643383;
+extern double pi;
+//double pi = 3.141592653589793238462643383;
 
 double complexLog(double re, double im)
 {
@@ -243,7 +242,7 @@ int _tmaintest(int argc, _TCHAR* argv[])
 }
 
 
-int _tmain(int argc, _TCHAR* argv[])
+int _tmain_syncdecode(int argc, _TCHAR* argv[])
 {
 	double th1,th2,w1,w2,wb1,wb2,dw1,dw2;
 	double x1, y1, x2, y2;

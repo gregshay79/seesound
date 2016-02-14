@@ -112,8 +112,11 @@
     <ClCompile Include="..\fldigimod\src\trx\modem.cxx" />
     <ClCompile Include="..\Library\DisplayFunctions.cpp" />
     <ClCompile Include="..\Library\fftlib.cpp" />
+    <ClCompile Include="..\Library\filters\hilbertwindow6.cpp" />
+    <ClCompile Include="..\Library\filters\hilbertwindow7.cpp" />
     <ClCompile Include="..\Library\gammatone_c.cpp" />
     <ClCompile Include="..\Library\genblack.cpp" />
+    <ClCompile Include="..\syncDecode\syncDecode\syncDecode.cpp" />
     <ClCompile Include="LPCSound.cpp" />
     <ClCompile Include="..\Library\makeRateMap_c.cpp" />
     <ClCompile Include="stdafx.cpp">

@@ -130,7 +130,7 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 	LoadString(hInst, IDC_LPCSOUND, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInst);
 
-	hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+	hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 		0 /*CW_USEDEFAULT*/, 0, 1200 /*CW_USEDEFAULT*/, 1064, NULL, NULL, hInst, NULL);
 
 	if (!hWnd) {
@@ -156,7 +156,7 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 
 	SendMessage(hTrackWnd, TBM_SETRANGE, 1, MAKELONG(0, 200));
 	SendMessage(hTrackWnd, TBM_SETPOS, 1, 50);
-	//	UpdateWindow(hWnd);
+	UpdateWindow(hTrackWnd);
 
 
 	// Main message loop:
@@ -298,6 +298,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	decoder.init();
 	
+	//SendMessage(hTrackWnd, WM_PAINT, 0, 0);
+	RedrawWindow(hTrackWnd, NULL, NULL, RDW_INVALIDATE);
+
 	while(1) {
 
 #if 0
@@ -658,6 +661,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	int wmId, wmEvent;
 	PAINTSTRUCT ps;
 	HDC hdc;
+	RECT crect;
 
 	int trackpos;
 	WCHAR stxt[32];
@@ -710,7 +714,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
+
 		// TODO: Add any drawing code here...
+		GetClientRect(hWnd, &crect);
+		BitBlt(hdc, 0, 0, crect.right,crect.bottom, 0, 0, 0, BLACKNESS);
+
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_DESTROY:
