@@ -6,7 +6,10 @@
 //#include <stdio.h>
 //#include <mmsystem.h>
 #include <math.h>
+#include <float.h>
 #include <WinBase.h>
+#include <CommCtrl.h>
+
 #include "../library/wwaveloop.h"
 #include "../library/DisplayFunctions.h"
 
@@ -20,7 +23,7 @@
 #define MATH_BUFFER_SIZE AUDIO_BUFFER_SIZE
 #define RM_SIZE MATH_BUFFER_SIZE
 #define FFT_SIZE MATH_BUFFER_SIZE
-#define SAMPLE_FREQ 16000
+#define SAMPLE_FREQ 8000
 
 #define FFT
 //#define GAMMATONE
@@ -43,18 +46,24 @@ void makeRateMap(double *ratemap,int *numframesExport, double *x, int nsamples, 
 
 
 // Global Variables:
-HINSTANCE hInst;								// current instance
+HINSTANCE hInst=0;								// current instance
+HWND hWnd = 0;								// Main window handle
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
+HWND hTrackWnd, hTrackWnd2;
+int terminate_flag = -100;
+
+
 short abuff[AUDIO_BUFFER_SIZE*2];
 double dbuffr[MATH_BUFFER_SIZE],dbuffi[MATH_BUFFER_SIZE],fbuffr[MATH_BUFFER_SIZE],fbuffi[MATH_BUFFER_SIZE];
+double filterr[MATH_BUFFER_SIZE], filteri[MATH_BUFFER_SIZE];
 double cbuffr[MATH_BUFFER_SIZE],cbuffi[MATH_BUFFER_SIZE];
 double wbuff[MATH_BUFFER_SIZE];
 double exbuff[MATH_BUFFER_SIZE*2];
 double autocorr[MATH_BUFFER_SIZE],autocorrd[MATH_BUFFER_SIZE];;
 
 double dwin[MATH_BUFFER_SIZE],postmultr[MATH_BUFFER_SIZE],postmulti[MATH_BUFFER_SIZE];
-double scrbuff[MATH_BUFFER_SIZE];
+double scrbuff[MATH_BUFFER_SIZE],scrbuffb[MATH_BUFFER_SIZE];
 double gbuff[MATH_BUFFER_SIZE];
 
 double ratemap[64][NUM_CHANNELS];
@@ -63,6 +72,8 @@ int numFramesExported=0;
 
 double autocorr_scale = 1./(AUTOCORR_SIZE*32768.0);
 double autocorrAlpha=.5;
+
+double GLOBAL_inputgain = 1.;
 
 _int64 tstamp1,tdiff,tstamp2=0;
 _int64 tmax,tmin;
@@ -108,6 +119,64 @@ void marktimeEnd(){
 	}
 }
 
+DWORD WINAPI doWindowsStuff(LPVOID param)
+{
+	MSG msg;
+	int nCmdShow = *(int*)param;
+	HACCEL hAccelTable;
+
+	// Initialize global strings
+	LoadString(hInst, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
+	LoadString(hInst, IDC_LPCSOUND, szWindowClass, MAX_LOADSTRING);
+	MyRegisterClass(hInst);
+
+	hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+		0 /*CW_USEDEFAULT*/, 0, 1200 /*CW_USEDEFAULT*/, 1064, NULL, NULL, hInst, NULL);
+
+	if (!hWnd) {
+		return FALSE;
+	}
+
+	ShowWindow(hWnd, nCmdShow);
+	UpdateWindow(hWnd);
+
+	hAccelTable = LoadAccelerators(hInst, MAKEINTRESOURCE(IDC_LPCSOUND));
+
+	// try a trackbar from the main window
+	hTrackWnd = CreateWindowW(TRACKBAR_CLASS,
+		L"Bob",
+		WS_CHILD | WS_VISIBLE | WS_TABSTOP | /* TBS_AUTOTICKS*/ TBS_NOTICKS | WS_BORDER,
+		2, YMAX - 228,
+		200, 28,
+		hWnd,
+		NULL,
+		hInst,
+		NULL
+		);
+
+	SendMessage(hTrackWnd, TBM_SETRANGE, 1, MAKELONG(0, 200));
+	SendMessage(hTrackWnd, TBM_SETPOS, 1, 50);
+	//	UpdateWindow(hWnd);
+
+
+	// Main message loop:
+	while (GetMessageW(&msg, NULL, 0, 0))
+	{
+		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+	// Here the program is supposed to exit..
+	terminate_flag = msg.wParam;
+	DestroyWindow(hTrackWnd);
+	DestroyWindow(hTrackWnd2);
+//	DestroyWindow(hWnd);
+
+	ExitThread(0);
+	return 0;
+}
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
@@ -123,9 +192,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
  	// TODO: Place code here.
-	MSG msg;
+//	MSG msg;
 	HACCEL hAccelTable;
-	HWND hWnd;
+//	HWND hWndMain=0;
 	wchar_t pbuff[80];
 	HDC hdc;
 	int i,j,wcolor;
@@ -137,28 +206,58 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	HGDIOBJ  defpen;
 	HGDIOBJ prevObj;
 	int mcount = 10;
+	DWORD threadID = 0;
 
+	//	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
+	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON | 0x0040 | _MM_MASK_UNDERFLOW | _MM_MASK_DENORM);
+
+#if 0
 	// Initialize global strings
 	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadString(hInstance, IDC_LPCSOUND, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
+#endif
 
 	QueryPerformanceFrequency((LARGE_INTEGER*)&tstamp1);
 	cpu_freq_factor = 1.0e6/((double)tstamp1);
 	// Perform application initialization:
 	hInst = hInstance; // Store instance handle in our global variable
 
-	hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+	// Spawn off a thread here to pump the message loop:
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)doWindowsStuff, (LPVOID)&nCmdShow, 0, &threadID);
+
+	while (!hWnd);  // Wait here until hWnd created.
+#if 0
+	hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
 		0 /*CW_USEDEFAULT*/, 0, 1200 /*CW_USEDEFAULT*/,1064, NULL, NULL, hInstance, NULL);
 
 	if (!hWnd) {
 		return FALSE;
 	}
+
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
+	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_LPCSOUND));
+
+	// try a trackbar from the main window
+	hTrackWnd = CreateWindowW(TRACKBAR_CLASS,
+		L"Bob",
+		WS_CHILD | WS_VISIBLE | WS_TABSTOP | /* TBS_AUTOTICKS*/ TBS_NOTICKS | WS_BORDER,
+		2, YMAX - 228,
+		200, 28,
+		hWnd,
+		NULL,
+		hInst,
+		NULL
+		);
+
+	SendMessage(hTrackWnd, TBM_SETRANGE, 1, MAKELONG(0, 200));
+	SendMessage(hTrackWnd, TBM_SETPOS, 1, 50);
+//	UpdateWindow(hWnd);
+#endif
 //----------------------------------------------------------------------
-		err = waveaudio_init(&wa, SAMPLE_FREQ, 2, 16, AUDIO_BUFFER_SIZE /* 44100/4 */ );
+	err = waveaudio_init(&wa, SAMPLE_FREQ, 2, 16, AUDIO_BUFFER_SIZE /* 44100/4 */ );
 	if(err) {
 		swprintf(pbuff,80,L"waveaudio_init failed, return code=%d\n",err);
 		MessageBox(hWnd,pbuff,NULL,MB_OK);
@@ -168,6 +267,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	for(i=0;i<MATH_BUFFER_SIZE;i++) {
 		dbuffi[i]=0.;
 		scrbuff[i] = 0.;
+		scrbuffb[i] = 0.;
+		filterr[i] = 0.;
+		filteri[i] = 0.;
 //		postmultr[i]= cos(i*pi/(2*MATH_BUFFER_SIZE));
 //		postmulti[i]= sin(i*pi/(2*MATH_BUFFER_SIZE));
 	}
@@ -180,7 +282,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	genblack(dwin,FFT_SIZE); 
 //-----------------------------------------------------------------------
 
-	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_LPCSOUND));
+//	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_LPCSOUND));
 
 	wcolor=RGB(0,255,128); // GREENBLUE
 
@@ -192,12 +294,14 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	defpen = SelectObject(hdc,GetStockObject(WHITE_PEN));
 	PatBlt(hdc,0,0,1200,1024,BLACKNESS);
 
-	mm.reset(3,250.);
+	mm.reset(3,2000.);
 
 	decoder.init();
 	
 	while(1) {
-		// Main message loop:
+
+#if 0
+//		 Main message loop:
 		if (PeekMessage(&msg, NULL, 0, 0,PM_REMOVE)) {
 			// test if this is a quit
 			if (msg.message == WM_QUIT)
@@ -208,9 +312,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				DispatchMessage(&msg);
 			}
 		}
+#endif
+		if (terminate_flag != -100)
+			break; // break out of while(1)
 
 		while(notdone=(!(wa.whin[wa.ibuf].dwFlags & WHDR_DONE) || !(wa.whout[wa.ibuf].dwFlags & WHDR_DONE)))
-			result = WaitForSingleObject(wa.he, 10 /*INFINITE*/);
+			result = WaitForSingleObject(wa.he, 10  /*INFINITE*/  /*was 10*/);
 
 		if (!notdone) {
 
@@ -254,7 +361,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				//abuff[i<<1]= (short)(32767.*cos(i*2.*pi/64.));  // integer test signal
 				
 				//yval = abuff[i<<1]>>7;
-				sigval = abuff[i<<1];
+				sigval = abuff[i<<1];   // Extract left channel out of stereo pair
 				//sigval = 16384.*cos(i*2.*pi/freq);		// float test signal
 
 //				sigval = biquad(sigval,BQhipass2k,&filterstate[0]);
@@ -262,7 +369,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 //				sigval = sigval + delay(sigval,80); // add in a delay of 80 samples (10ms)
 
-				dbuffr[i] = gain * sigval;					// apply windowing function for fft
+				dbuffr[i] = GLOBAL_inputgain * gain * sigval;			// gain adjustment
 
 				//yval = (int)(dbuffr[i<<1]/128.);
 				//SetPixel(hdc,i,(256+128)-yval,wcolor);
@@ -270,7 +377,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				//LineTo(hdc,i,256-yval);
 			}
 
-			// call decoder
+			// call morse decoder
 			decoder.rx_process(dbuffr, MATH_BUFFER_SIZE);
 			//decoder.rx_process(&dbuffr[MATH_BUFFER_SIZE >> 1], MATH_BUFFER_SIZE >> 1);
 
@@ -286,11 +393,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 			//DisplayWaveform(hdc,256,8,512,256,wbuff,FFT_SIZE,1.);
 			
-			// DisplayWaveform(hdc, 256, 1, 512, 128, wbuff, FFT_SIZE, 1.);
+			//DisplayWaveform(hdc, 256, 1, 512, 128, wbuff, FFT_SIZE, 1.);
 
 
 #if 0
-			// shuffle DCT input
+			// shuffle input for DCT
 			for(i=0;i<=(MATH_BUFFER_SIZE>>1)-1;i++) {
 				cbuffr[i]=wbuff[i<<1]; // for DCT transform
 				cbuffr[MATH_BUFFER_SIZE-1-i]=dbuffr[(i<<1)+1]; // for DCT transform
@@ -300,36 +407,56 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 #ifdef FFT
 			//Compute FFT
-#if 0
+#if 1
 			fft(wbuff,dbuffi,fbuffr,fbuffi,FFT_SIZE,1);  
+
+			double fcoef = 0.5;// 95;
+			double tcoef = 0.9;
+
+			for (i = 0; i < FFT_SIZE >> 1; i++) { //time domain filter before magnitude calculation
+				filterr[i] = fcoef*filterr[i] + (1. - fcoef)*fbuffr[i];
+				filteri[i] = fcoef*filteri[i] + (1. - fcoef)*fbuffi[i];
+			}
+
+
+
 			for(i=0;i< FFT_SIZE>>1 ;i++) {
-				scrbuff[i]= .7* (10*log(/*sqrt*/(fbuffr[i]*fbuffr[i]+fbuffi[i]*fbuffi[i]))) + .3*scrbuff[i]; //FFT Magnitude
+				scrbuff[i]  = tcoef*scrbuff[i]  + (1. - tcoef)* (20 * log10(1E-15+sqrt(fbuffr[i] * fbuffr[i] + fbuffi[i] * fbuffi[i]))); //time average of log of FFT Magnitude
+				scrbuffb[i] = tcoef*scrbuffb[i] + (1. - tcoef)* (20 * log10(1E-15+sqrt(filterr[i] * filterr[i] + filteri[i] * filteri[i]))); //time average of log of Magnitude of time average
 			}
 #endif
 			marktimeStart();
+#if 1
+			//void DisplayWaveform(HDC hdc, int x, int y, int w, int h, double *data, int dataLen, double ygain, int grid, int erase=1, int color)
+			DisplayWaveform(hdc,64,8,1024,256,scrbuff,FFT_SIZE>>1,500.,10);
+			DisplayWaveform(hdc,64,8,1024,256,scrbuffb,FFT_SIZE>>1,500.,0,0,RGB(255,0,0));
+#endif
 
-			 DisplayScrolling(hdc,8,128+8,1024,256,scrbuff,FFT_SIZE>>1);
-			 			 marktimeEnd();
 
+#if 1
+			int ypos = 256;
+			//DisplayScrolling(HDC hdc, int px, int py, int w,	int h,	double *data,	int dlen)
+			DisplayScrolling  (hdc,		8,		ypos+8,	1024,	256,	scrbuffb,		FFT_SIZE>>1);
+
+			marktimeEnd();
+#if 0
 			 //mm.draw(hdc, 8+1024-2, 128 + 8, 256, 3200., 2, RGB(200, 100, 100));
-			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 2., 2, RGB(128, 128, 128));
-			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 1500., 0, RGB(0, 250, 250));
-			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 1500., 1, RGB(250, 250, 0));
-			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 1500., 3, RGB(0, 255, 0));
-			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 2., 4, RGB(255, 0, 0));
+			mm.draw(hdc, 8 + 1024 - 2, ypos + 8, 256, 2., 2, RGB(128, 128, 128));
+			mm.draw(hdc, 8 + 1024 - 2, ypos + 8, 256, 2000., 0, RGB(0, 250, 250)); //cyan
+			mm.draw(hdc, 8 + 1024 - 2, ypos + 8, 256, 2000., 1, RGB(250, 250, 0));
+			mm.draw(hdc, 8 + 1024 - 2, ypos + 8, 256, 2000., 3, RGB(0, 255, 0));
+			mm.draw(hdc, 8 + 1024 - 2, ypos + 8, 256, 2., 4, RGB(255, 0, 0));
 
-			 mm.draw(hdc, 8 + 1024 - 2, 128 + 8, 256, 500., 5, RGB(250, 250, 250));
+			mm.draw(hdc, 8 + 1024 - 2, ypos + 8, 256, 500., 5, RGB(250, 250, 250));
 
 			 mm.drawh(hdc, 8, 512, 64, 3);
+#endif
 
-			 if (--mcount == 0) {
-				 mm.reset(3, 240.);
-				 mcount = 64;
-			 }
-
-
-			
-
+#endif
+			 //if (--mcount == 0) {
+				// mm.reset(3, 1000.);
+				// mcount = 64;
+			 //}
 
 			 //DisplayWaveform(hdc,10,128+256+16,512,128,scrbuff,FFT_SIZE>>1,100.);
 #endif
@@ -387,7 +514,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 // 1366 x 768
 //			DisplayWaveform(hdc,0,828,1024,128,autocorr,AUTOCORR_SIZE,16384./sum,80); // 10ms grid marks
-			DisplayWaveform(hdc, 0, YMAX-128, 1024, 128, autocorr, AUTOCORR_SIZE, 16384. / sum, 80); // 10ms grid marks
+			DisplayWaveform(hdc, 0, YMAX-128, 1024, 128, autocorr, AUTOCORR_SIZE, 16384. / sum, 0); // 10ms grid marks
 
 
 			sum=0.;
@@ -422,10 +549,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			//sum = sum/autocorr[0];
 			swprintf(pbuff,80,L"(%ld,%ld) autocorr=% 5.2f, freq= % 5.2f", (long)(tmin*cpu_freq_factor),(long)(tmax*cpu_freq_factor),autocorr[0],freq);  
 
-			PatBlt(hdc,800,YMAX-128,200,16,WHITENESS);
+			SetTextColor(hdc, RGB(0, 255, 255));
+			PatBlt(hdc,800,YMAX-128,200,16,BLACKNESS);
 			TextOut(hdc,800,YMAX-128,pbuff,wcslen(pbuff));
 
-			PatBlt(hdc, 0, YMAX - 128 - 16, 1280, 16, WHITENESS);
+			PatBlt(hdc, 0, YMAX - 128 - 16, 1280, 16, BLACKNESS);
 			swprintf(pbuff, 80, L"frq=%5.1f,wpm=%d, cw adap=%ld", decoder.frequency, decoder.cw_receive_speed, decoder.cw_adaptive_receive_threshold);
 			TextOut(hdc, 0, YMAX - 128 - 16, pbuff, wcslen(pbuff));
 			TextOut(hdc, 256, YMAX - 128 - 16, dummybuffer, wcslen(dummybuffer));
@@ -475,7 +603,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	ReleaseDC(hWnd,hdc);
 
 	waveaudio_cleanup(&wa);
-return (int) msg.wParam;
+
+	return terminate_flag;
 }
 
 
@@ -514,8 +643,6 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	return RegisterClassEx(&wcex);
 }
 
-
-
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -532,8 +659,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	PAINTSTRUCT ps;
 	HDC hdc;
 
+	int trackpos;
+	WCHAR stxt[32];
+
 	switch (message)
 	{
+
+	case WM_HSCROLL:
+		if ((HWND)lParam == hTrackWnd) {
+			trackpos = SendMessage(hTrackWnd, TBM_GETPOS, 0, 0); // Assume immediate return??
+			GLOBAL_inputgain = (double)(4.* trackpos / 200.);
+			swprintf(stxt, L"%4.2lg", GLOBAL_inputgain);
+			hdc = GetDC(hWnd);
+			BitBlt(hdc, 205, YMAX-228, 32, 16, NULL, 0, 0, WHITENESS);
+			TextOutW(hdc, 205, YMAX-228, stxt, wcslen(stxt));
+		
+		}
+		else
+			if ((HWND)lParam == hTrackWnd2) {
+				trackpos = SendMessage(hTrackWnd2, TBM_GETPOS, 0, 0); // Assume immediate return??
+				wsprintfW(stxt, L"%3d", trackpos);
+				hdc = GetDC(hWnd);
+				BitBlt(hdc, 505, 55, 24, 16, NULL, 0, 0, WHITENESS);
+				TextOutW(hdc, 505, 55, stxt, wcslen(stxt));
+			}
+			else break;
+
+			//wsprintfW(stxt, L"0x%08x", lParam);
+			//TextOutW(hdc, 0, 24, stxt, wcslen(stxt));
+			ReleaseDC(hWnd, hdc);
+			break;
+
+
+
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
 		wmEvent = HIWORD(wParam);

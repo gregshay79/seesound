@@ -37,7 +37,7 @@
 #include "mbuffer.h"
 
 
-#define	CWSampleRate	16000
+#define	CWSampleRate	8000
 #define	CWMaxSymLen		4096		// AG1LE: - was 4096 
 #define KNUM 			640			// 1/2 dot length at 5 wpm
 

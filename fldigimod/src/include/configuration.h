@@ -205,7 +205,7 @@ struct RGBI {
               3000)                                                                     \
         ELEM_(double, CWsweetspot, "CWSWEETSPOT",                                       \
               "Default CW tracking point (Hz)",                                         \
-              1000)                                                                     \
+              625)                                                                     \
         ELEM_(double, RTTYsweetspot, "RTTYSWEETSPOT",                                   \
               "Default RTTY tracking point (Hz)",                                       \
               1000)                                                                     \
@@ -402,10 +402,10 @@ struct RGBI {
               false)                                                                    \
         ELEM_(int, defCWspeed, "CWDEFSPEED",                                            \
               "Default speed (WPM)",                                                    \
-              24)                                                                       \
+              13)                                                                       \
         ELEM_(int, CWbandwidth, "CWBANDWIDTH",                                          \
               "Filter bandwidth (Hz)",                                                  \
-              150)                                                                      \
+              200)                                                                      \
         ELEM_(double, CWlower, "CWLOWER",                                               \
               "Detector hysterisis, lower threshold",                                   \
               0.4)                                                                      \
@@ -429,13 +429,13 @@ struct RGBI {
               true)                                                                    \
         ELEM_(int, CWrange, "CWRANGE",                                                  \
               "Tracking range for CWTRACK (WPM)",                                       \
-              10)                                                                       \
+              15)                                                                       \
         ELEM_(int, CWlowerlimit, "CWLOWERLIMIT",                                        \
               "Lower RX limit (WPM)",                                                   \
               5)                                                                        \
         ELEM_(int, CWupperlimit, "CWUPPERLIMIT",                                        \
               "Upper TX limit (WPM)",                                                   \
-              50)                                                                       \
+              30)                                                                       \
         ELEM_(double, CWdash2dot, "CWDASH2DOT",                                         \
               "Dash to dot ratio",                                                      \
               3.0)                                                                      \

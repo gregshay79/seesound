@@ -4,7 +4,7 @@
 
 void DisplayScrolling(HDC hdc,int px,int py,int w,int h,double *data,int dlen);
 
-void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,double ygain,int grid = -1);
+void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,double ygain,int grid = 0,int erase=1,int color=0);
 
 
 class minMaxMeter {
@@ -12,7 +12,7 @@ class minMaxMeter {
 	double mmin[IMAX], mmax[IMAX];
 	double hmax[IMAX];
 	HPEN nPen[IMAX];// = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }; // 0, 0, 0, 0, 0, 0, 0, 0 };
-	int hist[IMAX][HISTMAX];
+	float hist[IMAX][HISTMAX];
 
 public:
 	minMaxMeter();

@@ -7,18 +7,23 @@
 
 class minMaxMeter mm;
 
-void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,double ygain,int grid)
+// If grid is zero, draw no grid.
+// If grid is nonzero and positive, draw an x/y grid at the given increment of input units (before display gain).
+// if grid is negative, draw only a y grid 
+void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,double ygain,int grid,int erase, int color)
 {
 	HPEN greenPen;
 	HGDIOBJ prevPen;
 	int i,yval,yoff = h/2;
 	double yscale = ygain*h/2./32768.;
 	double xscale = ((double)(w))/dataLen;
+	int gridinc = abs(grid);
 
 //	greenPen = CreatePen(PS_SOLID,1,RGB(0,255,128)); // green pen
 
 	// Erase previous
-	PatBlt(hdc,x,y,w,h,BLACKNESS);
+	if (erase)
+		PatBlt(hdc,x,y,w,h,BLACKNESS);
 
 
 	//Draw bounding box and center line 
@@ -32,26 +37,30 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 	LineTo(hdc,x+w,y+yoff);
 
 #if 1
-	if (grid > 0) {
+	if (grid) {
 		// Draw graticule
-		greenPen = CreatePen(PS_DOT,1,RGB(80,0,0)); // dotted light greyblue pen
+		greenPen = CreatePen(PS_DOT /*PS_DOT*/, 1, RGB(128, 128, 150)); // dotted light greyblue pen
 		prevPen=SelectObject(hdc,greenPen);
-		//Draw vertical grid lines
-		for (i=grid;i<w/xscale;i+=grid) {
-			MoveToEx(hdc,i*xscale,y+1,NULL);
-			LineTo(hdc,i*xscale,y+h-1);
+		SetBkColor(hdc,RGB(0, 0, 0));
+
+			//Draw vertical grid lines
+		if (grid > 0) {
+			for (i = gridinc; i < w / xscale; i += gridinc) {
+				MoveToEx(hdc, x+i*xscale, y + 1, NULL);
+				LineTo(hdc, x+i*xscale, y + h - 1);
+			}
 		}
-		////Draw horizontal grid lines
-		//for (i=grid;i<h;i+=grid) {
-		//	int ypos;
-		//	ypos = y+yoff+i*yscale;
-		//	if (ypos>y+h)continue;
-		//	MoveToEx(hdc,x+1,ypos,NULL);
-		//	LineTo(hdc,x+w-1,ypos);
-		//	ypos = y+yoff-i*yscale;
-		//	MoveToEx(hdc,x+1,ypos,NULL);
-		//	LineTo(hdc,x+w-1,ypos);
-		//}
+		//Draw horizontal grid lines
+		for (i = gridinc; i<h / yscale / 2; i += gridinc) {
+			int ypos;
+			ypos = y+yoff+i*yscale;
+			if (ypos>y+h)continue;
+			MoveToEx(hdc,x+1,ypos,NULL);
+			LineTo(hdc,x+w-1,ypos);
+			ypos = y+yoff-i*yscale;
+			MoveToEx(hdc,x+1,ypos,NULL);
+			LineTo(hdc,x+w-1,ypos);
+		}
 
 		SelectObject(hdc,prevPen);
 		DeleteObject(greenPen);
@@ -59,7 +68,9 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 #endif
 
 	// Display waveform
-	greenPen = CreatePen(PS_SOLID,1,RGB(0,255,128)); // green pen
+	if (!color)
+		color = RGB(0, 255, 128);  // default green pen
+	greenPen = CreatePen(PS_SOLID,1,color);  
 	prevPen=SelectObject(hdc,greenPen);
 	yval=yoff-((int)(data[0]*yscale));
 //	if (yval > h) yval=h;
@@ -154,7 +165,9 @@ void DisplayScrolling(HDC hdc,int px,int py,int w,int h,double *data,int dlen)
 
 minMaxMeter::minMaxMeter()
 {
-	for (int i = 0; i < IMAX; i++) reset(i);
+	for (int i = 0; i < IMAX; i++) {
+		reset(i);
+	}
 }
 
 
@@ -171,7 +184,7 @@ void minMaxMeter::set(int ix, double value)
 	if (value > mmax[ix]) mmax[ix] = value;
 	i = .5 + (value / hmax[ix])*HISTMAX;
 	if (i>HISTMAX-1) i = HISTMAX-1;
-	hist[ix][i]++;
+	hist[ix][i] += 1.;
 }
 
 void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
@@ -194,7 +207,7 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 
 	for (i = 0; i < HISTMAX; i++) {
 		MoveToEx(hdc, px + i, py + h,NULL);
-		y = hist[ix][i];
+		y =  (hist[ix][i]*= 0.95);
 		if (y>h) y = h;
 		LineTo(hdc, px + i, py + h - y);
 	}

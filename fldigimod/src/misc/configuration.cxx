@@ -238,7 +238,7 @@ public:
 // will expand to, and accomplish several things:
 // 1) Declare "struct configuration". See ELEM_DECLARE_CONFIGURATION
 //    in configuration.h.
-// 2) Define progdefaults, the configuration struct that is initialised with
+// 2) Define progdefaults, the configuration struct that is initialised with 
 //    fldigi's default options
 #define ELEM_PROGDEFAULTS(type_, var_, tag_, doc_, ...) __VA_ARGS__,
 // 3) Define an array of tag element pointers

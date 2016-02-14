@@ -615,21 +615,23 @@ void cw::decode_stream(double value)
 
 	static double envelope = 0.;
 
-	envelope = decayavg_ms(envelope, value,1, 15.0 /*ms*/);
+	envelope = value;
+	//envelope = decayavg_ms(envelope, value,1, 1.0 /*ms*/);
 
 	value = envelope;
-
-	if (envelope < bottom) 
-		bottom = decayavg_ms(bottom, envelope, 3, 10.0);
+	mm.set(3, value);
+	if (envelope < bottom)
+		bottom = envelope;
+		//bottom = decayavg_ms(bottom, envelope, 3, 1.0);  // inverse peak detect bottom
 	else
-		bottom = decayavg_ms(bottom, envelope, 2, 50000.);
+		bottom = decayavg_ms(bottom, envelope, 2, 50000.); // slow leak up
 
-	if (envelope > 5 * bottom)   // 12dB above bottom
+	if (envelope > 10 * bottom)   // 12dB above bottom
 		gateCount++;
 	else
 		gateCount = 0;  
 	
-	if (gateCount > 20)  // if level above threshold for > 20ms, open agcgate
+	if (gateCount > 50)  // if level above threshold for > 50ms, open agcgate
 		agcGate = 1;
 	else
 		agcGate = 0;
@@ -638,17 +640,23 @@ void cw::decode_stream(double value)
 	
 // Compute a variable threshold value for tone detection
 // Fast attack and slow decay.
+	// let gate 'look ahead' by two samples
 	if (agcGate) {
 //		if (value > agc_peak)
-			agc_peak = decayavg(agc_peak, valuez2, 100);
+			//agc_peak = decayavg(agc_peak, value, 100);
+			agc_peak = decayavg_ms(agc_peak, value, 4, 250.);
 //		else
 //			agc_peak = decayavg(agc_peak, value, 50); // was 800
 	}
-	valuez2 = valuez;
-	valuez = value;
+
+//	valuez = valuez2;
+//	valuez2 = value;
+
+//	value = valuez;  // take oldest
+
 	metric = clamp(agc_peak * 2e3 , 0.0, 100.0);
 
-	mm.set(0, bottom*5.);
+	mm.set(0, bottom);
 	mm.set(1, agc_peak);
 
 // save correlation amplitude value for the sync scope
@@ -658,7 +666,7 @@ void cw::decode_stream(double value)
 	else
 		value = 0;
 
-	mm.set(3, envelope);
+	//mm.set(3, value);
 
 	pipe[pipeptr] = value;
 	if (++pipeptr == pipesize) pipeptr = 0;

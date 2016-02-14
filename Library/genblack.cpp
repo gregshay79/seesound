@@ -2,15 +2,15 @@
 #include <stdio.h>
 #include <math.h>
 
+
+
 void genblack(double *win, int n)
 {
 	int i;
 	double theta;
-	double pi;
+	double pi = 3.141592653589793238462643383;
 
-pi = 3.141592653589793238462643383;
-for(i=0;i<n;i++)
-	{
+for(i=0;i<n;i++) {
 	theta = 2*i*pi/n;
 	win[i] = 0.42 - 0.5*cos(theta)+0.08*cos(2*theta);
 	}
