@@ -1,0 +1,7 @@
+max noise:
+
+syncdecode 1820 2 20 .0015 70 .08
+
+syncdecode 2500 2 20 .0015 60 .08
+
+
