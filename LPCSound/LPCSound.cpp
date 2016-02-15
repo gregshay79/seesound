@@ -60,7 +60,7 @@ double filterr[MATH_BUFFER_SIZE], filteri[MATH_BUFFER_SIZE];
 double cbuffr[MATH_BUFFER_SIZE],cbuffi[MATH_BUFFER_SIZE];
 double wbuff[MATH_BUFFER_SIZE];
 double exbuff[MATH_BUFFER_SIZE*2];
-double autocorr[MATH_BUFFER_SIZE],autocorrd[MATH_BUFFER_SIZE];;
+double autocorr[MATH_BUFFER_SIZE], autocorrd[MATH_BUFFER_SIZE], autocorrFilt[MATH_BUFFER_SIZE];
 
 double dwin[MATH_BUFFER_SIZE],postmultr[MATH_BUFFER_SIZE],postmulti[MATH_BUFFER_SIZE];
 double scrbuff[MATH_BUFFER_SIZE],scrbuffb[MATH_BUFFER_SIZE];
@@ -224,7 +224,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	hInst = hInstance; // Store instance handle in our global variable
 
 	// Spawn off a thread here to pump the message loop:
-	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)doWindowsStuff, (LPVOID)&nCmdShow, 0, &threadID);
+	if (!CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)doWindowsStuff, (LPVOID)&nCmdShow, 0, &threadID))
+		exit(0);
 
 	while (!hWnd);  // Wait here until hWnd created.
 #if 0
@@ -274,7 +275,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 //		postmulti[i]= sin(i*pi/(2*MATH_BUFFER_SIZE));
 	}
 	for(i=0;i<FFT_SIZE;i++) 
-		autocorr[i]=0.;
+		autocorrFilt[i]=autocorr[i]=0.;
 
 	for(i=0;i<8;i++)
 		filterstate[i]=0.;
@@ -413,8 +414,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 #if 1
 			fft(wbuff,dbuffi,fbuffr,fbuffi,FFT_SIZE,1);  
 
-			double fcoef = 0.5;// 95;
-			double tcoef = 0.9;
+			double fcoef = 0.90;// 95;
+			double tcoef = 0.90;
 
 			for (i = 0; i < FFT_SIZE >> 1; i++) { //time domain filter before magnitude calculation
 				filterr[i] = fcoef*filterr[i] + (1. - fcoef)*fbuffr[i];
@@ -431,15 +432,15 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			marktimeStart();
 #if 1
 			//void DisplayWaveform(HDC hdc, int x, int y, int w, int h, double *data, int dataLen, double ygain, int grid, int erase=1, int color)
-			DisplayWaveform(hdc,64,8,1024,256,scrbuff,FFT_SIZE>>1,500.,10);
-			DisplayWaveform(hdc,64,8,1024,256,scrbuffb,FFT_SIZE>>1,500.,0,0,RGB(255,0,0));
+			DisplayWaveform(hdc, 64, 8, FFT_SIZE , 128, scrbuff, FFT_SIZE >> 1, 500., 20);
+			DisplayWaveform(hdc, 64, 8, FFT_SIZE , 128, scrbuffb, FFT_SIZE >> 1, 500., 0, 0, RGB(255, 0, 0));
 #endif
 
 
 #if 1
-			int ypos = 256;
-			//DisplayScrolling(HDC hdc, int px, int py, int w,	int h,	double *data,	int dlen)
-			DisplayScrolling  (hdc,		8,		ypos+8,	1024,	256,	scrbuffb,		FFT_SIZE>>1);
+			int ypos = 128;
+			//DisplayHScrolling(HDC hdc, int px, int py, int w,	int h,	double *data,	int dlen)
+			DisplayVScrolling(hdc, 64, ypos + 8, FFT_SIZE, 128, scrbuff, FFT_SIZE >> 1);
 
 			marktimeEnd();
 #if 0
@@ -478,7 +479,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				for(i=0;i<NUM_CHANNELS;i++) {
 					gbuff[i]= GTVgain*ratemap[j][i];
 				}
-				 DisplayScrolling(hdc,528,2+YMAX-128-512,512,512,gbuff,NUM_CHANNELS);
+				 DisplayHScrolling(hdc,528,2+YMAX-128-512,512,512,gbuff,NUM_CHANNELS);
 			 }
 			 DisplayWaveform(hdc,10,2+YMAX-128-512,512,256,ratemap[0],NUM_CHANNELS,1000.);
 #endif
@@ -511,13 +512,19 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				autocorr[i]= (1.-autocorrAlpha)*autocorr[i]+ autocorrAlpha * sum;
 			 }
 
-			 sum = autocorr[0];
+			 //time filter
+			 for (i = 0; i < AUTOCORR_SIZE; i++) {
+				 autocorrFilt[i] = tcoef*autocorrFilt[i] + (1. - tcoef)*autocorr[i];
+			 }
+
+
+			 sum = autocorrFilt[0];
 //			 for(i=0;i<FFT_SIZE;i++)
-//				 autocorrd[i] = autocorr[i]*sum;
+//				 t[i] = autocorr[i]*sum;
 
 // 1366 x 768
 //			DisplayWaveform(hdc,0,828,1024,128,autocorr,AUTOCORR_SIZE,16384./sum,80); // 10ms grid marks
-			DisplayWaveform(hdc, 0, YMAX-128, 1024, 128, autocorr, AUTOCORR_SIZE, 16384. / sum, 0); // 10ms grid marks
+			DisplayWaveform(hdc, 0, YMAX-128, 1024, 128, autocorrFilt, AUTOCORR_SIZE, 16384. / sum, 0); // 10ms grid marks
 
 
 			sum=0.;
@@ -527,11 +534,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			int bumptrig=0;
 			int peakfind=0;
 			for(i=0;i<AUTOCORR_SIZE;i++)  {
-				 sum += autocorr[i];
-				 if (autocorr[i]<0) trigger = 1;
+				 sum += autocorrFilt[i];
+				 if (autocorrFilt[i]<0) trigger = 1;
 				 if (trigger) {
-					if (autocorr[i] > max) {
-						max = autocorr[i];
+					if (autocorrFilt[i] > max) {
+						max = autocorrFilt[i];
 						maxi = i;
 						bumptrig=1;
 						peakfind=1;
@@ -539,7 +546,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 					}
 					
-					if ((autocorr[i]<0)&&bumptrig) {
+					if ((autocorrFilt[i]<0)&&bumptrig) {
 						max *= 1.05;
 						bumptrig=0;
 					}
@@ -550,7 +557,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			freq = SAMPLE_FREQ/maxi;
 #endif
 			//sum = sum/autocorr[0];
-			swprintf(pbuff,80,L"(%ld,%ld) autocorr=% 5.2f, freq= % 5.2f", (long)(tmin*cpu_freq_factor),(long)(tmax*cpu_freq_factor),autocorr[0],freq);  
+			swprintf(pbuff,80,L"(%ld,%ld) autocorrF=% 5.2f, freq= % 5.2f", (long)(tmin*cpu_freq_factor),(long)(tmax*cpu_freq_factor),autocorrFilt[0],freq);  
 
 			SetTextColor(hdc, RGB(0, 255, 255));
 			PatBlt(hdc,800,YMAX-128,200,16,BLACKNESS);

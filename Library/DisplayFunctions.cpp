@@ -91,9 +91,9 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 	DeleteObject(greenPen);
 }
 
-double gamma = 1.5;
+double gamma = 2.;// 1.5;
 int colorTableInitFlag=0;
-void DisplayScrolling(HDC hdc,int px,int py,int w,int h,double *data,int dlen)
+void DisplayHScrolling(HDC hdc,int px,int py,int w,int h,double *data,int dlen)
 {
 	int i,yval;
 	HGDIOBJ prevPen;
@@ -162,6 +162,80 @@ void DisplayScrolling(HDC hdc,int px,int py,int w,int h,double *data,int dlen)
 	SelectObject(hdc,prevPen);
 }
 
+void DisplayVScrolling(HDC hdc, int px, int py, int w, int h, double *data, int dlen)
+{
+	int i, val,x,y,c;
+	int doublepix = 0;
+	HGDIOBJ prevPen;
+	double xscale;
+	static int colortable[256];
+
+	if (!colorTableInitFlag){
+		for (i = 0; i<256; i++) {
+			double v, v3;
+			int r, g, b;
+			v = i / 255.;  // v ranges from 0.0 to 1.0
+			v3 = v*v;//*v;   // v^3
+			v3 = (exp(gamma*v) - 1) / (exp(gamma) - 1); // normalize to 1
+			r = (int)((v * 255 + v3 * 255) / 2.);	// r = 1/2v^3 + 1/2v
+			g = (int)(v3*255.);				// g = v^3
+			b = g;
+			colortable[i] = RGB(r, g, b);
+		}
+		colorTableInitFlag++;
+	}
+
+	xscale = ((double)w) / dlen;
+	if (w / dlen == 2) {
+		doublepix = 1;
+	}
+
+	//Draw bounding box
+	prevPen = SelectObject(hdc, GetStockObject(WHITE_PEN));
+	MoveToEx(hdc, px, py, NULL);
+	LineTo(hdc, px + w, py);
+	LineTo(hdc, px + w, py + h);
+	LineTo(hdc, px, py + h);
+	LineTo(hdc, px, py);
+
+	//scroll down 1 pixel
+	BitBlt(hdc, px + 1, py + 2, w - 2, h - 2, hdc, px + 1, py + 1, SRCCOPY);
+
+	//SelectObject(hdc,GetStockObject(WHITE_PEN));
+	//MoveToEx(hdc,0,768,NULL);
+
+	for (i = 0; i<dlen; i++) {
+		//		int x,y;
+		//		scrbuff[i]= .7* (10*log(/*sqrt*/(fbuffr[i]*fbuffr[i]+fbuffi[i]*fbuffi[i]))) + .3*scrbuff[i]; //FFT
+		val = (int)data[i] + 64;
+		//yval = (int)(dwin[i]*256);
+		if (val > 255) val = 255;
+		if (val < 0) val = 0;
+		//MoveToEx(hdc,i+MATH_BUFFER_SIZE,256+128,NULL);
+		//		x = (i );
+		//		y = (256+512)-yval;
+//		SetPixel(hdc, px + w - 2, py + h - 1 - ((int)(i*yscale + 0.5)), colortable[(int)val]);
+		SetPixel(hdc, x=px + 1 + ((int)(i*xscale + 0.5)), y=py + 1, c=colortable[(int)val]);
+		if (doublepix)
+			SetPixel(hdc, x + 1, y, c);
+		/*
+		SelectObject(hdc,greenPen);
+		LineTo(hdc,x,y);
+
+		SelectObject(hdc,GetStockObject(BLACK_PEN));
+		MoveToEx(hdc,x,y+1,NULL);
+		LineTo(hdc,x,950);
+		//MoveToEx(hdc,x-1,y+1,NULL);
+		//ineTo(hdc,x-1,950);
+		//SetPixel(hdc,x,y,wcolor);
+		MoveToEx(hdc,x,y,NULL);
+		//MoveToEx(hdc,i,256,NULL);
+		//LineTo(hdc,i,256-yval);
+		*/
+	}
+
+	SelectObject(hdc, prevPen);
+}
 
 minMaxMeter::minMaxMeter()
 {
