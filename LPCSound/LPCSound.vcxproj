@@ -164,6 +164,7 @@
     <ClCompile Include="..\Library\filters\hilbertwindow7.cpp" />
     <ClCompile Include="..\Library\gammatone_c.cpp" />
     <ClCompile Include="..\Library\genblack.cpp" />
+    <ClCompile Include="..\Library\knobs.cpp" />
     <ClCompile Include="..\syncDecode\syncDecode\syncDecode.cpp" />
     <ClCompile Include="LPCSound.cpp" />
     <ClCompile Include="..\Library\makeRateMap_c.cpp" />
@@ -176,6 +177,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Library\DisplayFunctions.h" />
+    <ClInclude Include="..\Library\knobs.h" />
     <ClInclude Include="LPCSound.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />

@@ -12,6 +12,7 @@
 
 #include "../library/wwaveloop.h"
 #include "../library/DisplayFunctions.h"
+#include "../Library/knobs.h"
 
 #include "cw.h"
 #include "configuration.h"
@@ -156,7 +157,10 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 
 	SendMessage(hTrackWnd, TBM_SETRANGE, 1, MAKELONG(0, 200));
 	SendMessage(hTrackWnd, TBM_SETPOS, 1, 50);
-	UpdateWindow(hTrackWnd);
+//	UpdateWindow(hTrackWnd);
+
+	// make a gain knob
+	createKnob(hWnd, &knobs[0], L"Gain", 2, YMAX-248, normMap, 0, 200, 100);
 
 
 	// Main message loop:
@@ -300,7 +304,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	decoder.init();
 	
 	//SendMessage(hTrackWnd, WM_PAINT, 0, 0);
-	RedrawWindow(hTrackWnd, NULL, NULL, RDW_INVALIDATE);
+	RedrawWindow(hWnd, NULL, NULL, RDW_INVALIDATE);
 
 	while(1) {
 
@@ -373,7 +377,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 //				sigval = sigval + delay(sigval,80); // add in a delay of 80 samples (10ms)
 
-				dbuffr[i] = GLOBAL_inputgain * gain * sigval;			// gain adjustment
+				dbuffr[i] = knobs[0].value*4. * gain * sigval;			// gain adjustment
 
 				//yval = (int)(dbuffr[i<<1]/128.);
 				//SetPixel(hdc,i,(256+128)-yval,wcolor);
@@ -736,7 +740,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// TODO: Add any drawing code here...
 		GetClientRect(hWnd, &crect);
 		BitBlt(hdc, 0, 0, crect.right,crect.bottom, 0, 0, 0, BLACKNESS);
-
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_DESTROY:

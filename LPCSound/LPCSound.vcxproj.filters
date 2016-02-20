@@ -66,6 +66,9 @@
     <ClCompile Include="..\Library\filters\hilbertwindow7.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Library\knobs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LPCSound.h">
@@ -81,6 +84,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Library\DisplayFunctions.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Library\knobs.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
