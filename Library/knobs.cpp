@@ -10,76 +10,6 @@
 WNDPROC original_procedure;
 bool toggle = false;
 
-#if OLDCODE
-void draw_on_hButton(HDC hDC, WCHAR *image = L"D:/proj/library/pictures/GregPicMedium.bmp" ){
-	//Graphics gx(hdc);
-	//gx.SetTextRenderingHint(TextRenderingHintAntiAlias);
-	//gx.Clear(Color(20, 20, 20)); //clear it with the same color,to avoid any default hButton1 drawing
-	//Image img(image);
-	//gx.DrawImage(&img, 0, 0);
-	int nWidth = 100, nHeight = 100;
-	HGDIOBJ oldobj;
-
-	HDC memDC = CreateCompatibleDC(hDC);
-//	HBITMAP memBM = CreateCompatibleBitmap(hDC, nWidth, nHeight);
-
-	HBITMAP hBMP = (HBITMAP)LoadImageW(NULL, image, IMAGE_BITMAP, 100, 100, LR_LOADFROMFILE);
-	oldobj = SelectObject(memDC, hBMP);
-	BitBlt(hDC, 0, 0, 100, 100, memDC, 0, 0, SRCCOPY);
-	
-	SelectObject(memDC, oldobj);
-	DeleteObject(hBMP);
-	ReleaseDC(hwnd,memDC);
-}
-#endif
-#if OLDCODE
-LRESULT CALLBACK ButtonProc(HWND ws, UINT Message, WPARAM wParam, LPARAM lParam){
-	PAINTSTRUCT ps;
-	HDC hdc;
-
-	switch (Message){
-	case WM_PAINT:
-		if (ws == hButton1){
-			hdc = BeginPaint(ws, &ps);
-			draw_on_hButton(hdc);
-			EndPaint(ws, &ps);
-		}
-		break;
-	case WM_MOUSEMOVE:
-		if (toggle == false){
-			TRACKMOUSEEVENT event_;
-			event_.cbSize = sizeof(TRACKMOUSEEVENT);
-			event_.dwFlags = TME_LEAVE | TME_HOVER;
-			event_.hwndTrack = hButton1;
-			event_.dwHoverTime = 10;
-			TrackMouseEvent(&event_);
-			toggle = true;
-		}
-		break;
-	case WM_MOUSELEAVE:
-		//revert to initial image
-		if (toggle){
-			toggle = false;
-			//update
-			hdc = GetDC(hButton1);
-			draw_on_hButton(hdc);
-			ReleaseDC(hButton1, hdc);
-		}
-		break;
-	case WM_MOUSEHOVER:
-		//change to hover image
-		if (toggle){
-			hdc = GetDC(hButton1);
-			draw_on_hButton(hdc, L"D:/proj/library/pictures/eMG.bmp");
-			ReleaseDC(hButton1, hdc);
-			Beep(500, 200);
-		}
-		break;
-	}
-	return CallWindowProc(original_procedure1, ws, Message, wParam, lParam);
-}
-#endif
-
 struct knob knobs[MAX_KNOB];
 
 double linmap(int v, int min, int max)
@@ -113,8 +43,8 @@ LRESULT CALLBACK KnobProc(HWND ws, UINT Message, WPARAM wParam, LPARAM lParam)
 
 	if (knobs[ix].hwnd) {
 		switch (Message){
+
 		case WM_PAINT:
-			//		if (ws == hButton1){
 			hdc = BeginPaint(ws, &ps);
 			swprintf_s(msgstr, L"%s:%5.4lf", knobs[ix].name, knobs[ix].value);
 			BitBlt(hdc, 0, 0, KNOBSIZEX, KNOBSIZEY, 0, 0, 0, WHITENESS);
@@ -122,28 +52,22 @@ LRESULT CALLBACK KnobProc(HWND ws, UINT Message, WPARAM wParam, LPARAM lParam)
 			EndPaint(ws, &ps);
 			//		}
 			break;
+
 		case WM_LBUTTONDOWN:
 			anchor.x = LOWORD(lParam);
 			anchor.y = HIWORD(lParam);
 			SetCapture(ws);
 			captured = true;
 			break;
+
 		case WM_LBUTTONUP:
 			if (captured) {
 				ReleaseCapture();
 				captured = false;
 			}
 			break;
+
 		case WM_MOUSEMOVE:
-			//if (toggle == false){
-			//	TRACKMOUSEEVENT event_;
-			//	event_.cbSize = sizeof(TRACKMOUSEEVENT);
-			//	event_.dwFlags = TME_LEAVE | TME_HOVER;
-			//	event_.hwndTrack = ws;
-			//	event_.dwHoverTime = 3;
-			//	TrackMouseEvent(&event_);
-			//	toggle = true;
-			//}
 			if (captured) {
 				cp.x = (short int)(LOWORD(lParam));
 				cp.y = (short int)(HIWORD(lParam));
@@ -163,26 +87,6 @@ LRESULT CALLBACK KnobProc(HWND ws, UINT Message, WPARAM wParam, LPARAM lParam)
 				ReleaseDC(ws, hdc);
 			}
 			break;
-
-			//case WM_MOUSELEAVE:
-			//	//revert to initial image
-			//	if (toggle){
-			//		toggle = false;
-			//		//update
-			//		hdc = GetDC(ws);
-			//		draw_on_hButton(hdc);
-			//		ReleaseDC(ws, hdc);
-			//	}
-			//	break;
-			//case WM_MOUSEHOVER:
-			//	//change to hover image
-			//	if (toggle){
-			//		hdc = GetDC(ws);
-			//		draw_on_hButton(hdc, L"D:/proj/library/pictures/eMG.bmp");
-			//		ReleaseDC(ws, hdc);
-			//		Beep(500, 200);
-			//	}
-			//	break;
 		}
 	}
 	return CallWindowProc(original_procedure, ws, Message, wParam, lParam);
@@ -211,83 +115,6 @@ HWND createKnob(HWND hwnd, struct knob *pK, TCHAR *name, int x, int y, double(*f
 
 	return pK->hwnd;
 }
-
-#if OLDCODE
-LRESULT CALLBACK ButtonProc(HWND ws, UINT Message, WPARAM wParam, LPARAM lParam){
-	PAINTSTRUCT ps;
-	HDC hdc;
-	static POINT anchor,cp;
-	static bool captured = false;
-	int dx, dy, distance,trigger=0;
-	TCHAR msgstr[8];
-
-	switch (Message){
-	case WM_PAINT:
-//		if (ws == hButton1){
-			hdc = BeginPaint(ws, &ps);
-			draw_on_hButton(hdc);
-			EndPaint(ws, &ps);
-//		}
-		break;
-	case WM_LBUTTONDOWN:
-		anchor.x = LOWORD(lParam);
-		anchor.y = HIWORD(lParam);
-		SetCapture(ws);
-		captured = true;
-		break;
-	case WM_LBUTTONUP:
-		if (captured) {
-			ReleaseCapture();
-			captured = false;
-		}
-		break;
-	case WM_MOUSEMOVE:
-		//if (toggle == false){
-		//	TRACKMOUSEEVENT event_;
-		//	event_.cbSize = sizeof(TRACKMOUSEEVENT);
-		//	event_.dwFlags = TME_LEAVE | TME_HOVER;
-		//	event_.hwndTrack = ws;
-		//	event_.dwHoverTime = 3;
-		//	TrackMouseEvent(&event_);
-		//	toggle = true;
-		//}
-		if (captured) {
-			cp.x = (short int)(LOWORD(lParam));
-			cp.y = (short int)(HIWORD(lParam));
-			dx = cp.x - anchor.x;
-			dy = cp.y - anchor.y;
-			distance = dx - dy;
-			wsprintf(msgstr, L"%d", distance);
-			hdc = GetDC(ws);
-			BitBlt(hdc, 0, 0, 32, 16, 0, 0, 0, WHITENESS);
-			TextOut(hdc, 0, 0, msgstr, lstrlenW(msgstr));
-			ReleaseDC(ws, hdc);
-		}
-		break;
-
-	//case WM_MOUSELEAVE:
-	//	//revert to initial image
-	//	if (toggle){
-	//		toggle = false;
-	//		//update
-	//		hdc = GetDC(ws);
-	//		draw_on_hButton(hdc);
-	//		ReleaseDC(ws, hdc);
-	//	}
-	//	break;
-	//case WM_MOUSEHOVER:
-	//	//change to hover image
-	//	if (toggle){
-	//		hdc = GetDC(ws);
-	//		draw_on_hButton(hdc, L"D:/proj/library/pictures/eMG.bmp");
-	//		ReleaseDC(ws, hdc);
-	//		Beep(500, 200);
-	//	}
-	//	break;
-	}
-	return CallWindowProc(original_procedure1, ws, Message, wParam, lParam);
-}
-#endif
 
 void initKnobs()
 {

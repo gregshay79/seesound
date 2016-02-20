@@ -4,7 +4,10 @@
 
 #define KNOBSIZEX 64
 #define KNOBSIZEY 16
+
+#ifndef MAX_KNOB
 #define MAX_KNOB 10
+#endif
 
 struct knob {
 	HWND hwnd;

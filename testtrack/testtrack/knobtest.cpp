@@ -3,6 +3,7 @@
 
 #include <windows.h>
 #include <math.h>
+
 #include "../../Library/knobs.h"
 
 #undef UNICODE
@@ -68,11 +69,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 	PAINTSTRUCT ps;
 	int i;
 
-	//initialize gdiplus
-//	GdiplusStartupInput gdiplusStartupInput;
-//	ULONG_PTR           gdiplusToken;
-//	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
-
 	switch (Message) {
 	case WM_PAINT:
 		hdc = BeginPaint(hwnd, &ps);
@@ -80,35 +76,21 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 		break;
 	case WM_CREATE:
 		createKnob(hwnd, &knobs[0], L"Gain", 10, 10, &linmap, 100, 0, 100);
-
 		createKnob(hwnd, &knobs[1], L"Tc", 100, 10, &tcmap, 50, 0, 100);
-
-		//hButton1 = CreateWindowW(L"Button", 0, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 250, 200, 100, 100, hwnd, 0, instance, 0);
-		////subclassing
-		//original_procedure1 = (WNDPROC)SetWindowLong(hButton1, GWL_WNDPROC, (long)ButtonProc);
-
-		//hButton2 = CreateWindow(L"Button", 0, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 450, 200, 100, 100, hwnd, 0, instance, 0);
-		////subclassing
-		//original_procedure2 = (WNDPROC)SetWindowLong(hButton2, GWL_WNDPROC, (long)ButtonProc);
-
 		break;
+
 	case WM_COMMAND:
-		//if ((HWND)lParam == hButton1){
-		//	TCHAR msgstr[64];
-		//	wsprintf(msgstr, L"hButton1 is pressed, wParam=0x%04x", wParam);
-		//	MessageBoxW(hwnd, msgstr, L"Ok", 0);
-		//}
 		break;
+
 	case WM_CLOSE:
 		destroyKnobs();
-
-		//DestroyWindow(hButton1);
-		//DestroyWindow(hButton2);
 		DestroyWindow(hwnd);
 		break;
+
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+
 	default:
 		return DefWindowProc(hwnd, Message, wParam, lParam);
 	}

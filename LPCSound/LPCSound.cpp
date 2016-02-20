@@ -414,8 +414,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 #if 1
 			fft(wbuff,dbuffi,fbuffr,fbuffi,FFT_SIZE,1);  
 
-			double fcoef = 0.90;// 95;
-			double tcoef = 0.90;
+			double fcoef = 0.50;// 95;
+			double tcoef = 0.50;
 
 			for (i = 0; i < FFT_SIZE >> 1; i++) { //time domain filter before magnitude calculation
 				filterr[i] = fcoef*filterr[i] + (1. - fcoef)*fbuffr[i];
@@ -436,11 +436,22 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			DisplayWaveform(hdc, 64, 8, FFT_SIZE , 128, scrbuffb, FFT_SIZE >> 1, 500., 0, 0, RGB(255, 0, 0));
 #endif
 
+			// Draw markers at 500Hz +/- 10hz
+			int x;
+			prevObj = SelectObject(hdc, redPen);
+			MoveToEx(hdc, x=(int)(64.+FFT_SIZE*(500-10)/(SAMPLE_FREQ/2)), 8, NULL);
+			LineTo(hdc, x, 8+128);
+
+			MoveToEx(hdc, x = (int)(64. + FFT_SIZE*(500 + 10) / (SAMPLE_FREQ/2)), 8, NULL);
+			LineTo(hdc, x, 8 + 128);
+			SelectObject(hdc, prevObj);
+
+
 
 #if 1
 			int ypos = 128;
 			//DisplayHScrolling(HDC hdc, int px, int py, int w,	int h,	double *data,	int dlen)
-			DisplayVScrolling(hdc, 64, ypos + 8, FFT_SIZE, 128, scrbuff, FFT_SIZE >> 1);
+			DisplayVScrolling(hdc, 64, ypos + 8, FFT_SIZE, 128, scrbuffb, FFT_SIZE >> 1);
 
 			marktimeEnd();
 #if 0
