@@ -79,6 +79,7 @@ double GLOBAL_inputgain = 1.;
 _int64 tstamp1,tdiff,tstamp2=0;
 _int64 tmax,tmin;
 double cpu_freq_factor;
+double samplerate, block_size;
 
 extern wchar_t dummybuffer[];
 
@@ -143,6 +144,7 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 
 	hAccelTable = LoadAccelerators(hInst, MAKEINTRESOURCE(IDC_LPCSOUND));
 
+#ifdef USETRACKBAR
 	// try a trackbar from the main window
 	hTrackWnd = CreateWindowW(TRACKBAR_CLASS,
 		L"Bob",
@@ -158,10 +160,14 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 	SendMessage(hTrackWnd, TBM_SETRANGE, 1, MAKELONG(0, 200));
 	SendMessage(hTrackWnd, TBM_SETPOS, 1, 50);
 //	UpdateWindow(hTrackWnd);
+#endif
 
 	// make a gain knob
-	createKnob(hWnd, &knobs[0], L"Gain", 2, YMAX-248, normMap, 0, 200, 100);
+	createKnob(hWnd, &knobs[0], L"Inp Gain:", 2, 0, norm4Map, dBmap, 0, 200, 100);
 
+	// Make fcoeff knob
+	createKnob(hWnd, &knobs[1], L"F Tc:", 2, 32, tcmap, tcDispMap, 0, 400, 100);
+	createKnob(hWnd, &knobs[2], L"T Tc:", 2, 64, tcmap, tcDispMap, 0, 400, 100);
 
 	// Main message loop:
 	while (GetMessageW(&msg, NULL, 0, 0))
@@ -211,6 +217,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	HGDIOBJ prevObj;
 	int mcount = 10;
 	DWORD threadID = 0;
+	int xpos=0,ypos = 16;
 
 	//	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON | 0x0040 | _MM_MASK_UNDERFLOW | _MM_MASK_DENORM);
@@ -224,6 +231,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	QueryPerformanceFrequency((LARGE_INTEGER*)&tstamp1);
 	cpu_freq_factor = 1.0e6/((double)tstamp1);
+	samplerate = SAMPLE_FREQ;
+	block_size = AUDIO_BUFFER_SIZE;
 	// Perform application initialization:
 	hInst = hInstance; // Store instance handle in our global variable
 
@@ -291,8 +300,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	wcolor=RGB(0,255,128); // GREENBLUE
 
-
-
 	redPen = CreatePen(PS_SOLID,1,RGB(255,50,50)); // red pen
 	greenPen = CreatePen(PS_SOLID,1,RGB(0,255,128)); // green pen
 	hdc = GetDC(hWnd);
@@ -307,6 +314,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	RedrawWindow(hWnd, NULL, NULL, RDW_INVALIDATE);
 
 	while(1) {
+		ypos = 16;
 
 #if 0
 //		 Main message loop:
@@ -418,8 +426,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 #if 1
 			fft(wbuff,dbuffi,fbuffr,fbuffi,FFT_SIZE,1);  
 
-			double fcoef = 0.50;// 95;
-			double tcoef = 0.50;
+			double fcoef = knobs[1].value;// 95;
+			double tcoef = knobs[2].value;
 
 			for (i = 0; i < FFT_SIZE >> 1; i++) { //time domain filter before magnitude calculation
 				filterr[i] = fcoef*filterr[i] + (1. - fcoef)*fbuffr[i];
@@ -435,27 +443,29 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 #endif
 			marktimeStart();
 #if 1
+//			ypos = 16;
+			xpos = 128;
 			//void DisplayWaveform(HDC hdc, int x, int y, int w, int h, double *data, int dataLen, double ygain, int grid, int erase=1, int color)
-			DisplayWaveform(hdc, 64, 8, FFT_SIZE , 128, scrbuff, FFT_SIZE >> 1, 500., 20);
-			DisplayWaveform(hdc, 64, 8, FFT_SIZE , 128, scrbuffb, FFT_SIZE >> 1, 500., 0, 0, RGB(255, 0, 0));
-#endif
+			DisplayWaveform(hdc, xpos, ypos, FFT_SIZE, 128, scrbuff, FFT_SIZE >> 1, 500., 20);
+			DisplayWaveform(hdc, xpos, ypos, FFT_SIZE, 128, scrbuffb, FFT_SIZE >> 1, 500., 0, 0, RGB(255, 0, 0));
 
 			// Draw markers at 500Hz +/- 10hz
 			int x;
 			prevObj = SelectObject(hdc, redPen);
-			MoveToEx(hdc, x=(int)(64.+FFT_SIZE*(500-10)/(SAMPLE_FREQ/2)), 8, NULL);
-			LineTo(hdc, x, 8+128);
+			MoveToEx(hdc, x = (int)(xpos + FFT_SIZE*(500 - 10) / (SAMPLE_FREQ / 2)), ypos, NULL);
+			LineTo(hdc, x, ypos+128);
 
-			MoveToEx(hdc, x = (int)(64. + FFT_SIZE*(500 + 10) / (SAMPLE_FREQ/2)), 8, NULL);
-			LineTo(hdc, x, 8 + 128);
+			MoveToEx(hdc, x = (int)(xpos + FFT_SIZE*(500 + 10) / (SAMPLE_FREQ / 2)), ypos, NULL);
+			LineTo(hdc, x, ypos+128);
 			SelectObject(hdc, prevObj);
-
-
+			ypos += 128;
+#endif
 
 #if 1
-			int ypos = 128;
+//			int ypos = 128+16;
 			//DisplayHScrolling(HDC hdc, int px, int py, int w,	int h,	double *data,	int dlen)
-			DisplayVScrolling(hdc, 64, ypos + 8, FFT_SIZE, 128, scrbuffb, FFT_SIZE >> 1);
+			DisplayVScrolling(hdc, xpos, ypos, FFT_SIZE, 128, scrbuffb, FFT_SIZE >> 1);
+			ypos += 128;
 
 			marktimeEnd();
 #if 0
@@ -715,8 +725,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			//TextOutW(hdc, 0, 24, stxt, wcslen(stxt));
 			ReleaseDC(hWnd, hdc);
 			break;
-
-
 
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
