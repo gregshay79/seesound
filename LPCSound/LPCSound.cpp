@@ -57,6 +57,7 @@ int terminate_flag = -100;
 
 short abuff[AUDIO_BUFFER_SIZE*2];
 double dbuffr[MATH_BUFFER_SIZE],dbuffi[MATH_BUFFER_SIZE],fbuffr[MATH_BUFFER_SIZE],fbuffi[MATH_BUFFER_SIZE];
+double mag[MATH_BUFFER_SIZE];
 double filterr[MATH_BUFFER_SIZE], filteri[MATH_BUFFER_SIZE];
 double cbuffr[MATH_BUFFER_SIZE],cbuffi[MATH_BUFFER_SIZE];
 double wbuff[MATH_BUFFER_SIZE];
@@ -163,11 +164,11 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 #endif
 
 	// make a gain knob
-	createKnob(hWnd, &knobs[0], L"Inp Gain:", 2, 0, norm4Map, dBmap, 0, 200, 100);
+	createKnob(hWnd, &knobs[0], L"Inp Gain:", 2, 0, norm4Map, dBmap, 0, 200, 50);
 
 	// Make fcoeff knob
-	createKnob(hWnd, &knobs[1], L"F Tc:", 2, 32, tcmap, tcDispMap, 0, 400, 100);
-	createKnob(hWnd, &knobs[2], L"T Tc:", 2, 64, tcmap, tcDispMap, 0, 400, 100);
+	createKnob(hWnd, &knobs[1], L"F Tc:", 2, 32, tcmap, tcDispMap, 0, 400, 25);
+	createKnob(hWnd, &knobs[2], L"T Tc:", 2, 64, tcmap, tcDispMap, 0, 400, 25);
 
 	// Main message loop:
 	while (GetMessageW(&msg, NULL, 0, 0))
@@ -210,7 +211,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	int i,j,wcolor;
 	double sum;
 	bool notdone;
-	double freq=128.,dfreq=-1.;
+	double freq=250.,dfreq=-1.;
 	double sigval;
 	HPEN redPen,greenPen;
 	HGDIOBJ  defpen;
@@ -218,6 +219,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	int mcount = 10;
 	DWORD threadID = 0;
 	int xpos=0,ypos = 16;
+	double theta = 0.;
+	double scaleFactor = 1. / 32768.;
+	double wincomp;
 
 	//	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON | 0x0040 | _MM_MASK_UNDERFLOW | _MM_MASK_DENORM);
@@ -294,6 +298,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		filterstate[i]=0.;
 
 	genblack(dwin,FFT_SIZE); 
+	wincomp = 2.5;
 //-----------------------------------------------------------------------
 
 //	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_LPCSOUND));
@@ -367,25 +372,33 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			//LineTo(hdc,1024,512+256);
 
 			sum=0.;
-			freq += dfreq;
-			if (freq > 256)
-				dfreq = -dfreq;
-			if (freq < 8)
-				dfreq = -dfreq;
+			//freq += dfreq;
+			//if (freq > 256)
+			//	dfreq = -dfreq;
+			//if (freq < 8)
+			//	dfreq = -dfreq;
 
 			for(i=0;i<MATH_BUFFER_SIZE;i++) {
 				//abuff[i<<1]= (short)(32767.*cos(i*2.*pi/64.));  // integer test signal
 				
 				//yval = abuff[i<<1]>>7;
+
+				//sigval = abuff[i<<1];   // Extract left channel out of stereo pair
+
+				// float test signal
+//				theta += freq* 2* pi/samplerate;
+//				if (theta>2 * pi) theta -= 2 * pi;
+//				sigval = 32767.*cos(theta);		
+
 				sigval = abuff[i<<1];   // Extract left channel out of stereo pair
-				//sigval = 16384.*cos(i*2.*pi/freq);		// float test signal
+
 
 //				sigval = biquad(sigval,BQhipass2k,&filterstate[0]);
 //				sigval = biquad(sigval,BQhipass2k,&filterstate[2]);
 
 //				sigval = sigval + delay(sigval,80); // add in a delay of 80 samples (10ms)
 
-				dbuffr[i] = knobs[0].value*4. * gain * sigval;			// gain adjustment
+				dbuffr[i] = knobs[0].value * scaleFactor * sigval;			// gain adjustment
 
 				//yval = (int)(dbuffr[i<<1]/128.);
 				//SetPixel(hdc,i,(256+128)-yval,wcolor);
@@ -402,12 +415,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 //				 int j;
 //				 j = i+(MATH_BUFFER_SIZE>>1);
 //				 if (j >= MATH_BUFFER_SIZE) j-= MATH_BUFFER_SIZE;
-			 	wbuff[i]= dbuffr[i] * dwin[i];
+			 	wbuff[i]= wincomp * dbuffr[i] * dwin[i];
 //				cbuffr[i] *= dwin[j];
 			 }
 
 
-			//DisplayWaveform(hdc,256,8,512,256,wbuff,FFT_SIZE,1.);
+			DisplayWaveform(hdc,128+8+512,16,512,256,dbuffr,FFT_SIZE,-1.0,1.0);
 			
 			//DisplayWaveform(hdc, 256, 1, 512, 128, wbuff, FFT_SIZE, 1.);
 
@@ -439,6 +452,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			for(i=0;i< FFT_SIZE>>1 ;i++) {
 				scrbuff[i]  = tcoef*scrbuff[i]  + (1. - tcoef)* (20 * log10(1E-15+sqrt(fbuffr[i] * fbuffr[i] + fbuffi[i] * fbuffi[i]))); //time average of log of FFT Magnitude
 				scrbuffb[i] = tcoef*scrbuffb[i] + (1. - tcoef)* (20 * log10(1E-15+sqrt(filterr[i] * filterr[i] + filteri[i] * filteri[i]))); //time average of log of Magnitude of time average
+//				mag[i] = sqrt(fbuffr[i] * fbuffr[i] + fbuffi[i] * fbuffi[i]);
 			}
 #endif
 			marktimeStart();
@@ -446,8 +460,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 //			ypos = 16;
 			xpos = 128;
 			//void DisplayWaveform(HDC hdc, int x, int y, int w, int h, double *data, int dataLen, double ygain, int grid, int erase=1, int color)
-			DisplayWaveform(hdc, xpos, ypos, FFT_SIZE, 128, scrbuff, FFT_SIZE >> 1, 500., 20);
-			DisplayWaveform(hdc, xpos, ypos, FFT_SIZE, 128, scrbuffb, FFT_SIZE >> 1, 500., 0, 0, RGB(255, 0, 0));
+			DisplayWaveform(hdc, xpos, ypos, FFT_SIZE, 128, scrbuff, FFT_SIZE >> 1, -100, 0., 10);
+//			DisplayWaveform(hdc, xpos, ypos, FFT_SIZE, 128, mag, FFT_SIZE >> 1, -1, 1.0, .1);
+			DisplayWaveform(hdc, xpos, ypos, FFT_SIZE, 128, scrbuffb, FFT_SIZE >> 1, -100, 0., 0, 0, RGB(255, 0, 0));
 
 			// Draw markers at 500Hz +/- 10hz
 			int x;
@@ -464,7 +479,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 #if 1
 //			int ypos = 128+16;
 			//DisplayHScrolling(HDC hdc, int px, int py, int w,	int h,	double *data,	int dlen)
-			DisplayVScrolling(hdc, xpos, ypos, FFT_SIZE, 128, scrbuffb, FFT_SIZE >> 1);
+			DisplayVScrolling(hdc, xpos, ypos, FFT_SIZE, 128, scrbuff, FFT_SIZE >> 1,-80,0);
 			ypos += 128;
 
 			marktimeEnd();
@@ -549,7 +564,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 // 1366 x 768
 //			DisplayWaveform(hdc,0,828,1024,128,autocorr,AUTOCORR_SIZE,16384./sum,80); // 10ms grid marks
-			DisplayWaveform(hdc, 0, YMAX-128, 1024, 128, autocorrFilt, AUTOCORR_SIZE, 16384. / sum, 0); // 10ms grid marks
+			DisplayWaveform(hdc, 0, YMAX-128, 1024, 128, autocorrFilt, AUTOCORR_SIZE, 0., 16384. / sum, 0); // 10ms grid marks
 
 
 			sum=0.;

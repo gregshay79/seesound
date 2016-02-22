@@ -10,12 +10,12 @@ class minMaxMeter mm;
 // If grid is zero, draw no grid.
 // If grid is nonzero and positive, draw an x/y grid at the given increment of input units (before display gain).
 // if grid is negative, draw only a y grid 
-void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,double ygain,int grid,int erase, int color)
+void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,double ymin, double ymax ,int grid,int erase, int color)
 {
 	HPEN greenPen;
 	HGDIOBJ prevPen;
-	int i,yval,yoff = h/2;
-	double yscale = ygain*h/2./32768.;
+	int i,yval,ycenter=h/2;
+	double yscale = h/(ymax - ymin);
 	double xscale = ((double)(w))/dataLen;
 	int gridinc = abs(grid);
 
@@ -33,8 +33,8 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 	LineTo(hdc,x+w,y+h);
 	LineTo(hdc,x,y+h);
 	LineTo(hdc,x,y);
-	MoveToEx(hdc,x,y+yoff,NULL);
-	LineTo(hdc,x+w,y+yoff);
+	MoveToEx(hdc, x, y + ycenter, NULL);
+	LineTo(hdc, x + w, y + ycenter);
 
 #if 1
 	if (grid) {
@@ -53,11 +53,11 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 		//Draw horizontal grid lines
 		for (i = gridinc; i<h / yscale / 2; i += gridinc) {
 			int ypos;
-			ypos = y+yoff+i*yscale;
+			ypos = y + ycenter + i*yscale;
 			if (ypos>y+h)continue;
 			MoveToEx(hdc,x+1,ypos,NULL);
 			LineTo(hdc,x+w-1,ypos);
-			ypos = y+yoff-i*yscale;
+			ypos = y + ycenter - i*yscale;
 			MoveToEx(hdc,x+1,ypos,NULL);
 			LineTo(hdc,x+w-1,ypos);
 		}
@@ -68,28 +68,30 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 #endif
 
 	// Display waveform
+	y += h;
 	if (!color)
 		color = RGB(0, 255, 128);  // default green pen
 	greenPen = CreatePen(PS_SOLID,1,color);  
 	prevPen=SelectObject(hdc,greenPen);
-	yval=yoff-((int)(data[0]*yscale));
+	yval = ((int)((data[0]-ymin) * yscale));
 //	if (yval > h) yval=h;
 //	if (yval < 0) yval=0;
 	BOUND(yval,0,h);
-	MoveToEx(hdc,x,y+yval,NULL);
+	MoveToEx(hdc,x,y-yval,NULL);
 	for(i=0;i<dataLen;i++) {
-		yval = (int)(data[i]*yscale);
-		yval = yoff-yval;
+		yval = (int)((data[i]-ymin)*yscale);
+//		yval = ycenter - yval;
 		BOUND(yval,0,h);
 //		if (yval > h) yval=h;
 //		if (yval < 0) yval=0;
 		//SetPixel(hdc,i,(256+128)-yval,wcolor);
-		LineTo(hdc,(int)(x+i*xscale),y+yval);
+		LineTo(hdc,(int)(x+i*xscale),y-yval);
 	}
 
 	SelectObject(hdc,prevPen);
 	DeleteObject(greenPen);
 }
+
 
 double gamma = 2.;// 1.5;
 int colorTableInitFlag=0;
@@ -162,13 +164,16 @@ void DisplayHScrolling(HDC hdc,int px,int py,int w,int h,double *data,int dlen)
 	SelectObject(hdc,prevPen);
 }
 
-void DisplayVScrolling(HDC hdc, int px, int py, int w, int h, double *data, int dlen)
+void DisplayVScrolling(HDC hdc, int px, int py, int w, int h, double *data, int dlen, double dmin, double dmax)
 {
 	int i, val,x,y,c;
 	int doublepix = 0;
 	HGDIOBJ prevPen;
 	double xscale;
+	double valscale;
 	static int colortable[256];
+
+	valscale = 255./(dmax - dmin);
 
 	if (!colorTableInitFlag){
 		for (i = 0; i<256; i++) {
@@ -207,7 +212,7 @@ void DisplayVScrolling(HDC hdc, int px, int py, int w, int h, double *data, int 
 	for (i = 0; i<dlen; i++) {
 		//		int x,y;
 		//		scrbuff[i]= .7* (10*log(/*sqrt*/(fbuffr[i]*fbuffr[i]+fbuffi[i]*fbuffi[i]))) + .3*scrbuff[i]; //FFT
-		val = (int)data[i] + 64;
+		val = (int)(valscale*(data[i]-dmin) + 64.5);
 		//yval = (int)(dwin[i]*256);
 		if (val > 255) val = 255;
 		if (val < 0) val = 0;

@@ -205,7 +205,7 @@ struct RGBI {
               3000)                                                                     \
         ELEM_(double, CWsweetspot, "CWSWEETSPOT",                                       \
               "Default CW tracking point (Hz)",                                         \
-              625)                                                                     \
+              500)                                                                     \
         ELEM_(double, RTTYsweetspot, "RTTYSWEETSPOT",                                   \
               "Default RTTY tracking point (Hz)",                                       \
               1000)                                                                     \
