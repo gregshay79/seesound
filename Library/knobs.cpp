@@ -37,23 +37,47 @@ double norm4Map(int v, int min, int max)
 	return val;
 }
 
+double milMap(int v, int min, int max)
+{
+	double val = 4.*((double)(v)-min) / (max - min);
+	return val/1000.;
+}
+
 TCHAR vstr[16];
 
-double tcmap(int v, int min, int max)
+double tcmapblockSR(int v, int min, int max)
 {
 	// create first order filter coefficient for 0 to 100ms
 	
 	double tau;// = v * 1E-3;
 
-	tau = 5.*normMap(v, min, max); // normalize to 0 to 1 second
+	tau = 5.*normMap(v, min, max); // normalize to 0 to 5 seconds
 	return exp(-1 / (tau*samplerate/block_size));
 }
 
-LPWSTR tcDispMap(double val)
+double tcmapfullSR(int v, int min, int max)
+{
+	// create first order filter coefficient for 0 to 100ms
+
+	double tau;// = v * 1E-3;
+
+	tau = normMap(v, min, max); // normalize to 0 to 1 second
+	return exp(-1 / (tau*samplerate));
+}
+
+LPWSTR tcBlockSRDispMap(double val)
 {
 	double tc;
 	tc = (-1.0 / log(val)) / (samplerate/block_size);
 	swprintf_s(vstr, L"%3.1fms", tc*1000);
+	return vstr;
+}
+
+LPWSTR tcFullSRDispMap(double val)
+{
+	double tc;
+	tc = (-1.0 / log(val)) / (samplerate);
+	swprintf_s(vstr, L"%3.1fms", tc * 1000);
 	return vstr;
 }
 

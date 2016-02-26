@@ -9,6 +9,17 @@
 #define MAX_KNOB 10
 #endif
 
+#define	KNOB_INGAIN	0
+#define KNOB_FTc		1
+#define KNOB_TTc		2
+
+#define KNOB_Cpro		3
+#define KNOB_Cint		4
+#define KNOB_Cdiff		5
+#define KNOB_DemodTc	6
+#define KNOB_Gamma		7
+#define KNOB_freq		8
+
 struct knob {
 	HWND hwnd;
 	RECT pos;
@@ -31,12 +42,17 @@ void destroyKnobs();
 void initKnobs();
 
 LPWSTR dBmap(double val);
-LPWSTR tcDispMap(double val);
+LPWSTR tcBlockSRDispMap(double val);
+LPWSTR tcFullSRDispMap(double val);
+
 
 double linmap(int v, int min, int max);
 double normMap(int v, int min, int max);
 double norm4Map(int v, int min, int max);
+double milMap(int v, int min, int max);
+
 
 double passthuMap(int v, int min, int max);
-double tcmap(int v, int min, int max);
+double tcmapblockSR(int v, int min, int max);
+double tcmapfullSR(int v, int min, int max);
 

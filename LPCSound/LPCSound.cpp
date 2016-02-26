@@ -29,7 +29,7 @@
 #define FFT
 //#define GAMMATONE
 
-#define AUTOCORR_SIZE 256		
+#define AUTOCORR_SIZE (MATH_BUFFER_SIZE/2)		
 #define NUM_CHANNELS 512
 
 //Display size
@@ -84,6 +84,8 @@ double samplerate, block_size;
 
 extern wchar_t dummybuffer[];
 
+extern double coherent_decode_block(double *dbuffr, int dlen);
+
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
@@ -95,7 +97,7 @@ double filterstate[8];
 double gain=2.0;
 double GTVgain = 10.;
 double max,maxi;
-
+double tracker_freq;
 
 cw decoder;
 
@@ -127,6 +129,7 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 	MSG msg;
 	int nCmdShow = *(int*)param;
 	HACCEL hAccelTable;
+	int ypos;
 
 	// Initialize global strings
 	LoadString(hInst, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -163,12 +166,25 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 //	UpdateWindow(hTrackWnd);
 #endif
 
+
+
 	// make a gain knob
-	createKnob(hWnd, &knobs[0], L"Inp Gain:", 2, 0, norm4Map, dBmap, 0, 200, 50);
+	createKnob(hWnd, &knobs[KNOB_INGAIN], L"Inp Gain:", 2, 0, norm4Map, dBmap, 0, 200, 50);
 
 	// Make fcoeff knob
-	createKnob(hWnd, &knobs[1], L"F Tc:", 2, 32, tcmap, tcDispMap, 0, 400, 25);
-	createKnob(hWnd, &knobs[2], L"T Tc:", 2, 64, tcmap, tcDispMap, 0, 400, 25);
+	createKnob(hWnd, &knobs[KNOB_FTc], L"F Tc:", 2, 32, tcmapblockSR, tcBlockSRDispMap, 0, 400, 25);
+	createKnob(hWnd, &knobs[KNOB_TTc], L"T Tc:", 2, 64, tcmapblockSR, tcBlockSRDispMap, 0, 400, 25);
+	createKnob(hWnd, &knobs[KNOB_freq], L"F delta:", 2, 80, norm4Map, NULL, 0, 400, 25);
+
+	// Make knobs for coherent decoder
+	ypos = 264;
+	createKnob(hWnd, &knobs[KNOB_Cpro],  L"Cpro :", 2, ypos += 24, norm4Map, NULL, 0, 400, 400);
+	createKnob(hWnd, &knobs[KNOB_Cint],  L"Cint :", 2, ypos += 24, milMap, NULL, 0, 400, 50);
+	createKnob(hWnd, &knobs[KNOB_Cdiff], L"Cdiff:", 2, ypos += 24, norm4Map, NULL, 0, 400, 0);
+	createKnob(hWnd, &knobs[KNOB_Gamma], L"gamma:", 2, ypos += 24, normMap, NULL, 0, 400, 30);
+	createKnob(hWnd, &knobs[KNOB_DemodTc], L"dmTc :", 2, ypos += 24, tcmapfullSR, tcFullSRDispMap, 0, 400, 5);
+
+
 
 	// Main message loop:
 	while (GetMessageW(&msg, NULL, 0, 0))
@@ -211,7 +227,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	int i,j,wcolor;
 	double sum;
 	bool notdone;
-	double freq=250.,dfreq=-1.;
+	double testfreq=505.,dfreq=-1.;
 	double sigval;
 	HPEN redPen,greenPen;
 	HGDIOBJ  defpen;
@@ -222,6 +238,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	double theta = 0.;
 	double scaleFactor = 1. / 32768.;
 	double wincomp;
+	double dval;
+	TCHAR strval[32];
 
 	//	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON | 0x0040 | _MM_MASK_UNDERFLOW | _MM_MASK_DENORM);
@@ -386,9 +404,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				//sigval = abuff[i<<1];   // Extract left channel out of stereo pair
 
 				// float test signal
-//				theta += freq* 2* pi/samplerate;
-//				if (theta>2 * pi) theta -= 2 * pi;
-//				sigval = 32767.*cos(theta);		
+/*				theta += (testfreq + knobs[KNOB_freq].value)* 2 * pi / samplerate;
+				if (theta>2 * pi) theta -= 2 * pi;
+				sigval = 0.1*32767.*cos(theta);	*/	
 
 				sigval = abuff[i<<1];   // Extract left channel out of stereo pair
 
@@ -398,7 +416,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 //				sigval = sigval + delay(sigval,80); // add in a delay of 80 samples (10ms)
 
-				dbuffr[i] = knobs[0].value * scaleFactor * sigval;			// gain adjustment
+				dbuffr[i] = knobs[KNOB_INGAIN].value * scaleFactor * sigval;			// gain adjustment
 
 				//yval = (int)(dbuffr[i<<1]/128.);
 				//SetPixel(hdc,i,(256+128)-yval,wcolor);
@@ -439,8 +457,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 #if 1
 			fft(wbuff,dbuffi,fbuffr,fbuffi,FFT_SIZE,1);  
 
-			double fcoef = knobs[1].value;// 95;
-			double tcoef = knobs[2].value;
+			double fcoef = knobs[KNOB_FTc].value;// 95;
+			double tcoef = knobs[KNOB_TTc].value;
 
 			for (i = 0; i < FFT_SIZE >> 1; i++) { //time domain filter before magnitude calculation
 				filterr[i] = fcoef*filterr[i] + (1. - fcoef)*fbuffr[i];
@@ -464,7 +482,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 //			DisplayWaveform(hdc, xpos, ypos, FFT_SIZE, 128, mag, FFT_SIZE >> 1, -1, 1.0, .1);
 			DisplayWaveform(hdc, xpos, ypos, FFT_SIZE, 128, scrbuffb, FFT_SIZE >> 1, -100, 0., 0, 0, RGB(255, 0, 0));
 
-			// Draw markers at 500Hz +/- 10hz
+			// Draw markers at 1000Hz +/- 10hz
 			int x;
 			prevObj = SelectObject(hdc, redPen);
 			MoveToEx(hdc, x = (int)(xpos + FFT_SIZE*(500 - 10) / (SAMPLE_FREQ / 2)), ypos, NULL);
@@ -481,10 +499,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			//DisplayHScrolling(HDC hdc, int px, int py, int w,	int h,	double *data,	int dlen)
 			DisplayVScrolling(hdc, xpos, ypos, FFT_SIZE, 128, scrbuff, FFT_SIZE >> 1,-80,0);
 			ypos += 128;
+			ypos += 8; // gap
 
 			marktimeEnd();
 #if 0
-			 //mm.draw(hdc, 8+1024-2, 128 + 8, 256, 3200., 2, RGB(200, 100, 100));
+			 //mm.draw(hdc, 8+1024-2, 128 + 8, 256, 3200., 2cr, RGB(200, 100, 100));
 			mm.draw(hdc, 8 + 1024 - 2, ypos + 8, 256, 2., 2, RGB(128, 128, 128));
 			mm.draw(hdc, 8 + 1024 - 2, ypos + 8, 256, 2000., 0, RGB(0, 250, 250)); //cyan
 			mm.draw(hdc, 8 + 1024 - 2, ypos + 8, 256, 2000., 1, RGB(250, 250, 0));
@@ -524,23 +543,37 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 DisplayWaveform(hdc,10,2+YMAX-128-512,512,256,ratemap[0],NUM_CHANNELS,1000.);
 #endif
 
+			 // Coherent decode
+			 // Data in dbuffr
+			 // build display at ypos
+			 dval = coherent_decode_block(dbuffr, MATH_BUFFER_SIZE);
+			 DisplayStripChart(hdc, xpos, ypos, 1024, 128, &dval, 1, -20, 20, 5);
+//			 DisplayStripChart(hdc, xpos, ypos, 1024, 128, &dval, 1, -1, 1);
+
+			 swprintf_s(strval, L"Ftrack %6.2lf", tracker_freq);
+			 BitBlt(hdc, 600, ypos, 64, 16, 0, 0, 0, WHITENESS);
+			 TextOut(hdc, 600, ypos, strval, lstrlenW(strval));
+			 ypos += 128;
 
 #if 1
 			 //Autocorrelation
 
-
 			 //make double buffer; calculate and remove DC
-
+			 static double acdc = 0.;
+			 double tau = 0.200; // 200ms second time constant
+			 double acdcCoeff = exp(-1.0 / (tau*samplerate));
 			 sum=0.;
-			 for(i=0;i<AUTOCORR_SIZE<<1;i++) {
+
+			 for(i=0;i<MATH_BUFFER_SIZE;i++) {
 				 exbuff[i]= dbuffr[i];//wbuff[i];
-				 sum += exbuff[i];
+				 acdc = acdc*acdcCoeff+(1-acdcCoeff)*exbuff[i];
+				 exbuff[i] -= acdc;
 			 }
-			 sum = sum / (AUTOCORR_SIZE<<1);
-			 // remove DC
-			 for(i=0;i<AUTOCORR_SIZE<<1;i++) {
-				 exbuff[i] -= sum;
-			 }
+//			 sum = sum / (AUTOCORR_SIZE<<1);
+//			 // remove DC
+//			 for(i=0;i<AUTOCORR_SIZE<<1;i++) {
+//				 exbuff[i] -= sum;
+//			 }
 
 
 			 for(i=0;i<AUTOCORR_SIZE;i++) {
@@ -562,55 +595,56 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 //			 for(i=0;i<FFT_SIZE;i++)
 //				 t[i] = autocorr[i]*sum;
 
-// 1366 x 768
+// 1366 x 768 screen
+//			 ypos = YMAX - 200;
+			 ypos += 32;
 //			DisplayWaveform(hdc,0,828,1024,128,autocorr,AUTOCORR_SIZE,16384./sum,80); // 10ms grid marks
-			DisplayWaveform(hdc, 0, YMAX-128, 1024, 128, autocorrFilt, AUTOCORR_SIZE, 0., 16384. / sum, 0); // 10ms grid marks
+			DisplayWaveform(hdc, 0, ypos, 1024, 128, autocorrFilt, AUTOCORR_SIZE, -sum, sum, 0); // 10ms grid marks
 
-
-			sum=0.;
+			sum = 0.;
 			max = 0.;
 			maxi = 0;
-			int trigger=0;
-			int bumptrig=0;
-			int peakfind=0;
-			for(i=0;i<AUTOCORR_SIZE;i++)  {
-				 sum += autocorrFilt[i];
-				 if (autocorrFilt[i]<0) trigger = 1;
-				 if (trigger) {
+			int trigger = 0;
+			int bumptrig = 0;
+			int peakfind = 0;
+			for (i = 0; i < AUTOCORR_SIZE; i++)  {
+				sum += autocorrFilt[i];
+				if (autocorrFilt[i] < 0) trigger = 1;
+				if (trigger) {
 					if (autocorrFilt[i] > max) {
 						max = autocorrFilt[i];
 						maxi = i;
-						bumptrig=1;
-						peakfind=1;
-					} else if (peakfind) { // one place past the peak, interpolate
+						bumptrig = 1;
+						peakfind = 1;
+					}
+					else if (peakfind) { // one place past the peak, interpolate
 
 					}
-					
-					if ((autocorrFilt[i]<0)&&bumptrig) {
+
+					if ((autocorrFilt[i] < 0) && bumptrig) {
 						max *= 1.05;
-						bumptrig=0;
+						bumptrig = 0;
 					}
-
-				 }
+				}
 			}
 
-			freq = SAMPLE_FREQ/maxi;
+			testfreq = SAMPLE_FREQ/maxi;
 #endif
 			//sum = sum/autocorr[0];
-			swprintf(pbuff,80,L"(%ld,%ld) autocorrF=% 5.2f, freq= % 5.2f", (long)(tmin*cpu_freq_factor),(long)(tmax*cpu_freq_factor),autocorrFilt[0],freq);  
-
+			swprintf(pbuff,80,L"(%ld,%ld) autocorrF=% 5.2f, freq= % 5.2f", (long)(tmin*cpu_freq_factor),(long)(tmax*cpu_freq_factor),autocorrFilt[0],testfreq);  
+			
+			PatBlt(hdc, 0, ypos - 16, 1280, 16, BLACKNESS);
 			SetTextColor(hdc, RGB(0, 255, 255));
-			PatBlt(hdc,800,YMAX-128,200,16,BLACKNESS);
-			TextOut(hdc,800,YMAX-128,pbuff,wcslen(pbuff));
+//			PatBlt(hdc,800,ypos-16,200,16,BLACKNESS);
+			TextOut(hdc,800,ypos-16,pbuff,wcslen(pbuff));
 
-			PatBlt(hdc, 0, YMAX - 128 - 16, 1280, 16, BLACKNESS);
 			swprintf(pbuff, 80, L"frq=%5.1f,wpm=%d, cw adap=%ld", decoder.frequency, decoder.cw_receive_speed, decoder.cw_adaptive_receive_threshold);
-			TextOut(hdc, 0, YMAX - 128 - 16, pbuff, wcslen(pbuff));
-			TextOut(hdc, 256, YMAX - 128 - 16, dummybuffer, wcslen(dummybuffer));
+			TextOut(hdc, 0, ypos - 16, pbuff, wcslen(pbuff));
+			TextOut(hdc, 256, ypos - 16, dummybuffer, wcslen(dummybuffer));
 
 			prevObj=SelectObject(hdc,redPen);
-			MoveToEx(hdc,maxi*4,YMAX-128,NULL);
-			LineTo(hdc,maxi*4,YMAX);
+			MoveToEx(hdc,maxi*4,ypos,NULL);
+			LineTo(hdc,maxi*4,ypos+128);
 			SelectObject(hdc,prevObj);
 			 
 #if 0

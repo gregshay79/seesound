@@ -4,6 +4,7 @@
 
 void DisplayHScrolling(HDC hdc,int px,int py,int w,int h,double *data,int dlen);
 void DisplayVScrolling(HDC hdc, int px, int py, int w, int h, double *data, int dlen, double dmin, double dmax);
+void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int dlen, double dmin, double dmax, double grid =0.0);
 
 
 void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,double ymin, double ymax, int grid = 0,int erase=1,int color=0);

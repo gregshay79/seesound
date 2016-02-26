@@ -95,6 +95,58 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 
 double gamma = 2.;// 1.5;
 int colorTableInitFlag=0;
+
+void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int dlen, double dmin, double dmax, double grid)
+{
+	int i, val, x, y, c;
+	HGDIOBJ prevPen;
+	HPEN greenPen;
+	double valscale;
+	static int lastpos;
+
+	valscale = (h-1) / (dmax - dmin);
+
+	//Draw bounding box and center line
+	prevPen = SelectObject(hdc, GetStockObject(WHITE_PEN));
+	MoveToEx(hdc, px, py, NULL);
+	LineTo(hdc, px + w, py);
+	LineTo(hdc, px + w, py + h);
+	LineTo(hdc, px, py + h);
+	LineTo(hdc, px, py);
+	MoveToEx(hdc, px, py + h/2, NULL);
+	LineTo(hdc, px + w, py + h/2);
+	SelectObject(hdc, prevPen);
+
+	// draw horizontal grid lines
+	if (grid > 1E-10){
+		// Draw graticule
+		greenPen = CreatePen(PS_DOT , 1, RGB(128, 128, 150)); // dotted light greyblue pen
+		prevPen = SelectObject(hdc, greenPen);
+		SetBkColor(hdc, RGB(0, 0, 0));
+		i = 1;
+		while ((y = i*grid*valscale+0.5)<h/2) 
+			{
+				MoveToEx(hdc, px, py+y + h / 2 , NULL);
+				LineTo(hdc, px + w, py+y + h / 2);
+				MoveToEx(hdc, px, py+ h / 2 - y, NULL);
+				LineTo(hdc, px + w, py+ h / 2 - y);
+				i++;
+			}
+		SelectObject(hdc, prevPen);
+		DeleteObject(greenPen);
+	}
+
+
+	//scroll left 1 pixel
+	BitBlt(hdc, px + 1, py + 1, w - 2, h - 2, hdc, px + 2, py + 1, SRCCOPY);
+
+	//SelectObject(hdc,GetStockObject(WHITE_PEN));
+	//MoveToEx(hdc,0,768,NULL);
+	y = ((int)((data[0] - dmin)*valscale + 0.5));
+	if ((y>0) && (y<h))
+		SetPixel(hdc, px + w - 2, py + h - 1 - y,RGB(200,100,0));
+}
+
 void DisplayHScrolling(HDC hdc,int px,int py,int w,int h,double *data,int dlen)
 {
 	int i,yval;

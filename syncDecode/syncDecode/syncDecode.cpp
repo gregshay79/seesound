@@ -5,20 +5,30 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../Library/knobs.h"
+
 
 extern  double hilbertKernel128[];
 extern  double hilbertKernel64[];
 extern  double LPFKernel64[];
 extern  double BP500Kernel64[];
 
+extern double tracker_freq;
+
 
 extern double pi;
 //double pi = 3.141592653589793238462643383;
+
+#define FUZZ 1E-20
+
+
 
 double complexLog(double re, double im)
 {
 	double imabs = fabs(im);
 	double reabs = fabs(re);
+
+	if ((imabs < FUZZ) && (reabs < FUZZ)) return 0.;
 
 	if ((re >= 0)&&(re >= imabs))
 			return atan(im / re);
@@ -52,6 +62,78 @@ double complexLogApprox(double mr, double mi)
 			err = -1 - 0.5*mi / aplen;
 
 	return pi*err;
+}
+
+//Unrolled complexLog, keep some state.
+double complexLogUnrolled(double mr, double mi)
+{
+	static int pq = 0, hq = 0; // previous quadrant and history quadrant
+	static int initflag = 1;
+	int cq;  // current quadrant
+	int i;
+	double ph;
+	static double PHadj[4];
+	static double PHacc = 0;
+
+	ph = complexLog(mr, mi);
+
+	cq = 0;
+	if (mr < 0)cq |= 2;
+	if (mi < 0)cq |= 1;
+
+	if (initflag){
+		initflag = 0;
+		for (i = 0; i < 4; i++) PHadj[i] = 0.;
+		pq = cq;
+		hq = cq;
+	}
+
+#if 0
+	if ((cq != pq) && (pq != hq)){
+		int key = (cq << 4) | (pq<<2) | hq;
+
+		switch (key) {
+		case (0x38) : // cq==3, pq==2, hq==0, moving into Q3, counter clockwise
+			PHadj[3] = 2 * pi;
+			PHadj[2] = 0;
+			break;
+		case(0x1E) :	// cq = 1,pq=3,hq = 2, moving into Q4, counter clockwise
+			PHacc += 2 * pi;
+			PHadj[3] = 0.;
+			break;
+		case(0x2D) :	// cq = 2, pq=3, hq = 1, moving into Q2, clockwise
+			PHadj[2] = -2 * pi;
+			PHadj[3] = 0.;
+			break;
+		case(0x0B) :	// cq==0, pq=2, hq=3, moving into Q1, clockwise
+			PHacc -= 2 * pi;
+			PHadj[2] = 0.;
+			break;
+		default:
+			break;
+		}
+		hq = pq;
+	}
+#endif 
+	if (cq != pq) {
+		if ((cq == 2) && (pq == 3))
+			PHacc -= 2 * pi;
+		if ((cq == 3) && (pq == 2))
+			PHacc += 2 * pi;
+	}
+
+	pq = cq;
+
+	if (fabs(PHacc) > 40 * 2 * pi) {
+		PHacc = 0.;
+	}
+
+	ph += PHacc + PHadj[cq];
+
+	// also implement error magnitude as well as phase, and bleed off
+	// error magnitude if noise condition detected (phase jumping 2 quadrants).
+
+	return ph;
 }
 
 struct firstate {
@@ -241,6 +323,189 @@ int _tmaintest(int argc, _TCHAR* argv[])
 	return 0;
 }
 
+double noiseSig, noiseEnergy = 0.;
+double sigEnergy = 0., totalEnergy = 0.;
+double demodFilterCoeff;
+struct zstate zmem1, zmem2;
+double sr = 8000.;
+double dt = 1 / sr;
+double twopi = 2 * pi;
+double mrState = 0., miState = 0.; //modulation product
+
+
+// Let this routine for now hold the local oscillator, take an input stream
+// of samples, and perform the PLL and decoding.  
+// Output is the time averaged detection signal feeding back into the PLL loop.
+// PID loop, detection parameter, and time constants are to be hooked up to knobs.
+double coherent_decode(double x1)
+{
+	static double th1, th2, w1, w2, wb1, wb2, dw1, dw2;
+	double y1, x2, y2;
+	double sx;
+	double mr, mi;
+	static double errint, lasterr;
+	double err, errdiff;
+	static double tscale=0.;
+	static double sigenergy = 0;
+	double variance;
+
+	int i, j;
+	static int initflag = 1;
+	double Cpro, Cint, Cdiff, control, gamma;
+
+	LARGE_INTEGER t, t1;
+
+	Cpro = knobs[KNOB_Cpro].value;
+	Cint = knobs[KNOB_Cint].value;
+	Cdiff = knobs[KNOB_Cdiff].value;
+	gamma = knobs[KNOB_Gamma].value;
+	demodFilterCoeff = knobs[KNOB_DemodTc].value;
+
+	
+	if (initflag) {
+//	initflag = 0;  // this is done later
+	sr = 8000.;
+	dt = 1 / sr;
+	th1 = 0.;
+	th2 = pi / 4;
+	wb1 = 1000.;
+	dw1 = 0;
+	wb2 = 500.;
+	dw2 = 0.;
+	mrState = 0.;
+	miState = 0.;
+
+	errint = 0.;
+	lasterr = 0.;
+
+	QueryPerformanceFrequency(&t1);
+	//	printf("System sez QPF = %d\n", t1.LowPart);
+	tscale = 1E6*(1. / t1.LowPart);
+
+	zmem1.memory = 0;
+	zmem2.memory = 0;
+
+	//demodFilterCoeff = exp(-dt / demodFilterCoeff);
+
+	fir_init(&HilbertFilterState, 64);
+	fir_init(&lowpassState, 64);
+	fir_init(&BPState, 64);
+
+}
+
+
+	//		w1 += dw1;
+	w1 = wb1 + dw1;
+	//		w2 += dw2;
+	w2 = wb2 + dw2;
+
+	tracker_freq = w2;
+
+	th1 += w1 * 2 * pi *dt;
+	th2 += w2 * 2 * pi *dt;
+
+	if (th1 > twopi) th1 -= twopi;
+	if (th2 > twopi) th2 -= twopi;
+
+	// The signal comes in x1
+//	x1 = cos(th1);
+//	sigEnergy += x1*x1;
+
+//	noiseSig = noiseAmp*(double)rand() / 32768.;
+//	noiseEnergy += noiseSig*noiseSig;
+
+//	x1 += noiseSig;
+	
+	x1 = fir(x1, BP500Kernel64, &BPState);
+	totalEnergy += x1*x1;
+
+	//		sx = sin(th1);  // for correctness checking
+	y1 = fir_hilbert(x1, hilbertKernel64, &HilbertFilterState);
+	x1 = zdelay(x1, &zmem1, 32); //compensating delay to hilbert filter
+	//		sx = zdelay(sx, &zmem2, 32);
+
+
+	//if (i == 200){
+	//	QueryPerformanceCounter(&t1);
+	//	for (j = 0; j < 1024; j++)
+	//		y1 = fir_hilbert(x1, hilbertKernel64, &HilbertFilterState);
+	//	QueryPerformanceCounter(&t);
+	//	t.QuadPart = t.QuadPart - t1.QuadPart;
+	//	fprintf(stderr, "fir_hilbert took %g us\n", t.LowPart*tscale/1024);
+
+	//	y1 = fir(x1, hilbertKernel64, &HilbertFilterState);
+	//	QueryPerformanceCounter(&t1);
+	//	for (j = 0; j < 1024; j++)
+	//		y1 = fir(x1, hilbertKernel64, &HilbertFilterState);
+	//	QueryPerformanceCounter(&t);
+	//	t.QuadPart = t.QuadPart - t1.QuadPart;
+	//	fprintf(stderr, "fir took %g us\n", t.LowPart*tscale/1024);
+	//}
+	//else
+
+	//local oscillator
+	x2 = cos(th2);
+	y2 = -sin(th2); // complex conjugate
+
+	mr = x1*x2 - y1*y2;
+	mi = x1*y2 + x2*y1;
+
+	mr = mrState = demodFilterCoeff*mrState + (1 - demodFilterCoeff)*mr;
+	mi = miState = demodFilterCoeff*miState + (1 - demodFilterCoeff)*mi;
+
+	//		if (i < 128) continue; // skip further processing until the Hilbert filter initializes
+
+
+	//if (i == 200) {
+	//	QueryPerformanceCounter(&t1);
+	//	for (j = 0; j < 1024; j++)
+	//		err = complexLog(mr, mi);
+	//	QueryPerformanceCounter(&t);
+	//	t.QuadPart = t.QuadPart - t1.QuadPart;
+	//	fprintf(stderr, "complexLog took %g us\n", t.LowPart*tscale / 1024);
+	//}
+
+	err = complexLogUnrolled(mr, mi);
+
+	sigenergy = .8 * sigenergy + .2*(x1*x1);
+
+	variance = mr*mr + mi*mi;
+
+	err = err * (variance); // scale error by the inverse variance of the demod signal
+
+
+	if (initflag) {
+		initflag = 0;
+		lasterr = err;
+	}
+
+	errint += err;
+	errdiff = err - lasterr;
+	lasterr = err;
+
+	control = Cpro*err + Cint*errint + Cdiff*errdiff;
+
+	dw2 = gamma * control;
+
+	//		printf("%lg, %lg, %lg\n", x1, y1, sx);
+//	printf("step %d, %8lg, %8lg, %8lg, %8lg, %8lg, %8lg\n", i, w2, err * 180 / pi, errint * 180 / pi, errdiff * 180 / pi, control, x1);
+
+	return dw2;
+}
+
+double coherent_decode_block(double *dbuffr, int dlen)
+{
+	int i;
+	double r;
+	double retval = 0;
+	for (i = 0; i < dlen; i++){
+		r=coherent_decode(dbuffr[i]);
+		retval = r>retval ? r : retval;
+	}
+
+	return r;
+}
+
 
 int _tmain_syncdecode(int argc, _TCHAR* argv[])
 {
@@ -250,18 +515,15 @@ int _tmain_syncdecode(int argc, _TCHAR* argv[])
 	double mr, mi;
 	static double mrState=0.,miState=0.; //modulation product
 	double err,errint,errdiff,lasterr;
-	double sr = 8000.;
-	double dt = 1 / sr;
+
 	double tscale;
 	double noiseAmp = 0.;
-	double noiseSig,noiseEnergy=0.;
-	double sigEnergy=0.,totalEnergy=0.;
+
 	int i,j;
 	int initflag = 1;
 	double Cpro, Cint, Cdiff,control,gamma;
-	double demodFilterCoeff;
-	double twopi = 2 * pi;
-	struct zstate zmem1, zmem2;
+
+
 	LARGE_INTEGER t, t1;
 
 	QueryPerformanceFrequency(&t1);
@@ -304,6 +566,7 @@ int _tmain_syncdecode(int argc, _TCHAR* argv[])
 
 	for (i = 0; i < 30000; i++) {
 
+
 //		w1 += dw1;
 		w1 = wb1 + dw1;
 //		w2 += dw2;
@@ -324,74 +587,7 @@ int _tmain_syncdecode(int argc, _TCHAR* argv[])
 
 		x1 += noiseSig;
 
-
-		x1 = fir(x1, BP500Kernel64, &BPState);
-		totalEnergy += x1*x1;
-
-//		sx = sin(th1);  // for correctness checking
-		y1 = fir_hilbert(x1, hilbertKernel64, &HilbertFilterState);
-		x1 = zdelay(x1, &zmem1, 32); //compensating delay to hilbert filter
-//		sx = zdelay(sx, &zmem2, 32);
-
-
-		//if (i == 200){
-		//	QueryPerformanceCounter(&t1);
-		//	for (j = 0; j < 1024; j++)
-		//		y1 = fir_hilbert(x1, hilbertKernel64, &HilbertFilterState);
-		//	QueryPerformanceCounter(&t);
-		//	t.QuadPart = t.QuadPart - t1.QuadPart;
-		//	fprintf(stderr, "fir_hilbert took %g us\n", t.LowPart*tscale/1024);
-
-		//	y1 = fir(x1, hilbertKernel64, &HilbertFilterState);
-		//	QueryPerformanceCounter(&t1);
-		//	for (j = 0; j < 1024; j++)
-		//		y1 = fir(x1, hilbertKernel64, &HilbertFilterState);
-		//	QueryPerformanceCounter(&t);
-		//	t.QuadPart = t.QuadPart - t1.QuadPart;
-		//	fprintf(stderr, "fir took %g us\n", t.LowPart*tscale/1024);
-		//}
-		//else
-			
-		//local oscillator
-		x2 = cos(th2);
-		y2 = -sin(th2); // complex conjugate
-
-		mr = x1*x2 - y1*y2;
-		mi = x1*y2 + x2*y1;
-
-		mr = mrState = demodFilterCoeff*mrState + (1-demodFilterCoeff)*mr;
-		mi = miState = demodFilterCoeff*miState + (1-demodFilterCoeff)*mi;
-
-		if (i < 128) continue; // skip further processing until the Hilbert filter initializes
-
-
-		//if (i == 200) {
-		//	QueryPerformanceCounter(&t1);
-		//	for (j = 0; j < 1024; j++)
-		//		err = complexLog(mr, mi);
-		//	QueryPerformanceCounter(&t);
-		//	t.QuadPart = t.QuadPart - t1.QuadPart;
-		//	fprintf(stderr, "complexLog took %g us\n", t.LowPart*tscale / 1024);
-		//}
-		
-		err = complexLog(mr, mi);
-
-		if (initflag) {
-			initflag = 0;
-			lasterr=err;
-		}
-
-		errint += err;
-		errdiff = err - lasterr;
-		lasterr = err;
-
-		control = Cpro*err + Cint*errint + Cdiff*errdiff;
-
-		dw2 = gamma * control;
-
-//		printf("%lg, %lg, %lg\n", x1, y1, sx);
-		printf("step %d, %8lg, %8lg, %8lg, %8lg, %8lg, %8lg\n", i, w2, err*180/pi, errint*180/pi, errdiff*180/pi, control,x1);
-
+		coherent_decode(x1);
 
 	}
 
@@ -408,4 +604,6 @@ int _tmain_syncdecode(int argc, _TCHAR* argv[])
 	fir_free(&lowpassState);
 	return 0;
 }
+
+
 
