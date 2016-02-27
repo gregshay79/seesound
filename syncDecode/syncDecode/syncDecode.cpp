@@ -14,6 +14,8 @@ extern  double LPFKernel64[];
 extern  double BP500Kernel64[];
 
 extern double tracker_freq;
+extern double phaseMeter[];
+extern double meter[];
 
 
 extern double pi;
@@ -324,7 +326,8 @@ int _tmaintest(int argc, _TCHAR* argv[])
 }
 
 double noiseSig, noiseEnergy = 0.;
-double sigEnergy = 0., totalEnergy = 0.;
+double sigEnergy = 0.;
+double totalEnergy = 0.;
 double demodFilterCoeff;
 struct zstate zmem1, zmem2;
 double sr = 8000.;
@@ -340,6 +343,7 @@ double mrState = 0., miState = 0.; //modulation product
 double coherent_decode(double x1)
 {
 	static double th1, th2, w1, w2, wb1, wb2, dw1, dw2;
+	static double xenergy = 0.;
 	double y1, x2, y2;
 	double sx;
 	double mr, mi;
@@ -347,7 +351,8 @@ double coherent_decode(double x1)
 	double err, errdiff;
 	static double tscale=0.;
 	static double sigenergy = 0;
-	double variance;
+	double meanvariance,meandeviation;
+	double agcgain;
 
 	int i, j;
 	static int initflag = 1;
@@ -417,8 +422,19 @@ double coherent_decode(double x1)
 //	x1 += noiseSig;
 	
 	x1 = fir(x1, BP500Kernel64, &BPState);
-	totalEnergy += x1*x1;
 
+	
+	// create agc here
+	xenergy = xenergy*.9999 + x1*x1*.0001;
+	agcgain = 1 / (sqrt(xenergy) + .025); //max 32dB gain
+	x1 *= agcgain;
+
+	meter[0] = xenergy; // 20 * log10(sqrt(xenergy) + 1E-15);
+
+	totalEnergy = totalEnergy*.9999 + x1*x1*.0001;
+
+	meter[1] = totalEnergy; // 20 * log10(sqrt(totalEnergy) + 1E-15);
+	
 	//		sx = sin(th1);  // for correctness checking
 	y1 = fir_hilbert(x1, hilbertKernel64, &HilbertFilterState);
 	x1 = zdelay(x1, &zmem1, 32); //compensating delay to hilbert filter
@@ -469,10 +485,16 @@ double coherent_decode(double x1)
 
 	sigenergy = .8 * sigenergy + .2*(x1*x1);
 
-	variance = mr*mr + mi*mi;
+	meanvariance = mr*mr + mi*mi;
+	meandeviation = sqrt(meanvariance);
 
-	err = err * (variance); // scale error by the inverse variance of the demod signal
+	phaseMeter[0] = mr;// / meandeviation;
+	phaseMeter[1] = mi;// / meandeviation;
+	phaseMeter[2] = err;
 
+	err = err * (meanvariance); // scale error by the inverse variance of the demod signal
+
+	
 
 	if (initflag) {
 		initflag = 0;

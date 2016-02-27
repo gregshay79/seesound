@@ -6,20 +6,180 @@
 #define BOUND(Y,L,H) (Y=Y<L?L:(Y>H)?H:Y)
 
 class minMaxMeter mm;
+double gamma = 2.;// 1.5;
+int colorTableInitFlag=0;
+extern double pi;
+
+// Draw a linear bar meter
+// Linear, size max{sx or sy}, constant fixed width overrides min{sx,sy}.
+// *data input as array of values
+// If dataLan > 2, this may be min,max or min,avg,max, or something
+// draw a tick mark at the value tickmark (defaults to 0.)
+// dBflag = 0, linear meter
+// dBflag = 1, dB transform on data
+// dBflag = 2, data is sum square value, take sqrt() before dB
+void DisplayMeterBar(HDC hdc, int dBflag, int x, int y, int sx, int sy, double *data, int dataLen, double min, double max, double tickmark)
+{
+	HPEN markerPen;
+	HGDIOBJ prevObj;
+	HBRUSH mybrush;
+	int color;
+	TCHAR strval[8];
+	int i, ival;
+	double scale, v;
+	int width = 8;
+
+	v = data[0];
+	if (dBflag) {
+		if (dBflag == 2)
+			v = sqrt(v);
+		v = 20 * log10(v + 1E-20); // Add fuzz to protect against -infinity here
+	}
+
+
+	// figure out if horizontal or vertical
+	if (sx > sy) {
+		sy = width;
+		scale = sx / (max - min);
+	}
+	else {
+		sx = width;
+		scale = sy / (max - min);
+	}
+
+
+	// Erase previous
+	PatBlt(hdc, x, y, sx, sy, BLACKNESS);
+
+	//Draw bounding box and center line 
+	prevObj = SelectObject(hdc, GetStockObject(WHITE_PEN));
+	MoveToEx(hdc, x, y, NULL);
+	LineTo(hdc, x + sx, y);
+	LineTo(hdc, x + sx, y + sy);
+	LineTo(hdc, x, y + sy);
+	LineTo(hdc, x, y);
+	
+	markerPen = CreatePen(PS_SOLID, 1, RGB(64, 64, 128)); //Tickmark dim blue grey
+	SelectObject(hdc, markerPen);
+	if (sx > sy) { // horizontal
+		MoveToEx(hdc, i=(int)(x + (0.5+scale*(tickmark-min))), y, NULL);
+		LineTo(hdc, i, y + +sy);
+	}
+	else { // vertical
+		MoveToEx(hdc, x, i = (int)(y+sy - (0.5 + scale*(tickmark - min))), NULL);
+		LineTo(hdc, x+sx,i);
+	}
+	SelectObject(hdc, prevObj);
+	DeleteObject(markerPen);
+
+	////if datalen ==3, 3rd value is the unwrapped phase angle
+	//if (dataLen == 3){
+	//	//		swprintf_s(strval, L"%2d", (int)((data[2]+pi) / (2 * pi)));
+	//	swprintf_s(strval, L"%3.2lf", data[2] / (2 * pi));
+
+	//	TextOut(hdc, x + sz - 32, y + 4, strval, lstrlenW(strval));
+	//}
+
+	// Display meter bar with a rectangle
+	y += sy;  // move origin to bottom left.  remember to subtract y pixel locations
+	mybrush = CreateSolidBrush(RGB(200, 128, 50)); // orange?
+	prevObj = SelectObject(hdc, mybrush);
+
+	ival = ((int)((v-min) * scale + 0.5));
+
+	if (sx > sy){
+		BOUND(ival, 1, sx - 1);
+		PatBlt(hdc, x + 1, y - 1, ival, sy - 2, PATCOPY);
+	}
+	else {
+		BOUND(ival, 1, sy - 1);
+		PatBlt(hdc, x + 1, y - 1-ival, sx-2, ival, PATCOPY);
+	}
+
+	SelectObject(hdc, prevObj);
+	DeleteObject(mybrush);
+}
+
+
+
+// Draw phasor diagram
+// Always square, size sz
+// *data input as array of (re,im) values
+// If dataLan > 2, this may be min,max or min,avg,max, or something
+// If phmax > pi, would be for an unrolled complexLog()
+void DisplayPhasor(HDC hdc, int x, int y, int sz, double *data, int dataLen, double magmax, double phmax)
+{
+	HPEN markerPen;
+	HGDIOBJ prevPen;
+	int color;
+	TCHAR strval[8];
+	int i, yval,xval, center=sz/2;
+	double scale = sz/2 / (magmax);
+
+	// Erase previous
+	PatBlt(hdc, x, y, sz, sz, BLACKNESS);
+
+	//Draw bounding box and center line 
+	prevPen = SelectObject(hdc, GetStockObject(WHITE_PEN));
+	MoveToEx(hdc, x, y, NULL);
+	LineTo(hdc, x + sz, y);
+	LineTo(hdc, x + sz, y + sz);
+	LineTo(hdc, x, y + sz);
+	LineTo(hdc, x, y);
+	//crosshairs dim blue grey
+	markerPen = CreatePen(PS_SOLID, 1, RGB(64, 64, 128));
+	SelectObject(hdc, markerPen);
+	MoveToEx(hdc, x, y + center, NULL);
+	LineTo(hdc, x + sz, y + center);
+	MoveToEx(hdc, x+center, y, NULL);
+	LineTo(hdc, x + center, y + sz);
+
+	SelectObject(hdc, prevPen);
+	DeleteObject(markerPen);
+
+	//if datalen ==3, 3rd value is the unwrapped phase angle
+	if (dataLen == 3){
+//		swprintf_s(strval, L"%2d", (int)((data[2]+pi) / (2 * pi)));
+		swprintf_s(strval, L"%3.2lf", data[2]/(2*pi) );
+
+		TextOut(hdc, x+sz-32, y+4, strval, lstrlenW(strval));
+	}
+
+	// Display phase vector
+	y += sz;  // move origin to bottom left.  remember to subtract y pixel locations
+	color = RGB(0, 255, 128);  // default green pen
+	markerPen = CreatePen(PS_SOLID, 1, color);
+	prevPen = SelectObject(hdc, markerPen);
+
+	xval = ((int)(data[0] * scale + 0.5));
+	yval = ((int)(data[1] * scale + 0.5));
+
+	//	if (yval > h) yval=h;
+	//	if (yval < 0) yval=0;
+	BOUND(yval, -center, center);
+	BOUND(xval, -center, center);
+
+	MoveToEx(hdc, x+center, y - center, NULL);
+	LineTo(hdc, x + center + xval, y - center - yval);
+
+	SelectObject(hdc, prevPen);
+	DeleteObject(markerPen);
+}
+
 
 // If grid is zero, draw no grid.
 // If grid is nonzero and positive, draw an x/y grid at the given increment of input units (before display gain).
 // if grid is negative, draw only a y grid 
 void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,double ymin, double ymax ,int grid,int erase, int color)
 {
-	HPEN greenPen;
+	HPEN markerPen;
 	HGDIOBJ prevPen;
 	int i,yval,ycenter=h/2;
 	double yscale = h/(ymax - ymin);
 	double xscale = ((double)(w))/dataLen;
 	int gridinc = abs(grid);
 
-//	greenPen = CreatePen(PS_SOLID,1,RGB(0,255,128)); // green pen
+//	markerPen = CreatePen(PS_SOLID,1,RGB(0,255,128)); // green pen
 
 	// Erase previous
 	if (erase)
@@ -39,8 +199,8 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 #if 1
 	if (grid) {
 		// Draw graticule
-		greenPen = CreatePen(PS_DOT /*PS_DOT*/, 1, RGB(128, 128, 150)); // dotted light greyblue pen
-		prevPen=SelectObject(hdc,greenPen);
+		markerPen = CreatePen(PS_DOT /*PS_DOT*/, 1, RGB(128, 128, 150)); // dotted light greyblue pen
+		prevPen=SelectObject(hdc,markerPen);
 		SetBkColor(hdc,RGB(0, 0, 0));
 
 			//Draw vertical grid lines
@@ -63,7 +223,7 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 		}
 
 		SelectObject(hdc,prevPen);
-		DeleteObject(greenPen);
+		DeleteObject(markerPen);
 	}
 #endif
 
@@ -71,8 +231,8 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 	y += h;
 	if (!color)
 		color = RGB(0, 255, 128);  // default green pen
-	greenPen = CreatePen(PS_SOLID,1,color);  
-	prevPen=SelectObject(hdc,greenPen);
+	markerPen = CreatePen(PS_SOLID,1,color);  
+	prevPen=SelectObject(hdc,markerPen);
 	yval = ((int)((data[0]-ymin) * yscale));
 //	if (yval > h) yval=h;
 //	if (yval < 0) yval=0;
@@ -89,18 +249,17 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 	}
 
 	SelectObject(hdc,prevPen);
-	DeleteObject(greenPen);
+	DeleteObject(markerPen);
 }
 
 
-double gamma = 2.;// 1.5;
-int colorTableInitFlag=0;
+
 
 void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int dlen, double dmin, double dmax, double grid)
 {
 	int i, val, x, y, c;
 	HGDIOBJ prevPen;
-	HPEN greenPen;
+	HPEN markerPen;
 	double valscale;
 	static int lastpos;
 
@@ -113,15 +272,20 @@ void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int 
 	LineTo(hdc, px + w, py + h);
 	LineTo(hdc, px, py + h);
 	LineTo(hdc, px, py);
-	MoveToEx(hdc, px, py + h/2, NULL);
-	LineTo(hdc, px + w, py + h/2);
-	SelectObject(hdc, prevPen);
-
+	
 	// draw horizontal grid lines
 	if (grid > 1E-10){
+		//draw zero line
+		markerPen = CreatePen(PS_SOLID, 1, RGB(64, 64, 128));
+		SelectObject(hdc, markerPen);
+		MoveToEx(hdc, px, py + h / 2, NULL);
+		LineTo(hdc, px + w, py + h / 2);
+		SelectObject(hdc, prevPen);
+		DeleteObject(markerPen);
+
 		// Draw graticule
-		greenPen = CreatePen(PS_DOT , 1, RGB(128, 128, 150)); // dotted light greyblue pen
-		prevPen = SelectObject(hdc, greenPen);
+		markerPen = CreatePen(PS_DOT , 1, RGB(128, 128, 150)); // dotted light greyblue pen
+		prevPen = SelectObject(hdc, markerPen);
 		SetBkColor(hdc, RGB(0, 0, 0));
 		i = 1;
 		while ((y = i*grid*valscale+0.5)<h/2) 
@@ -133,7 +297,7 @@ void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int 
 				i++;
 			}
 		SelectObject(hdc, prevPen);
-		DeleteObject(greenPen);
+		DeleteObject(markerPen);
 	}
 
 
@@ -144,7 +308,7 @@ void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int 
 	//MoveToEx(hdc,0,768,NULL);
 	y = ((int)((data[0] - dmin)*valscale + 0.5));
 	if ((y>0) && (y<h))
-		SetPixel(hdc, px + w - 2, py + h - 1 - y,RGB(200,100,0));
+		SetPixel(hdc, px + w - 2, py + h - 1 - y,RGB(255,200,50));
 }
 
 void DisplayHScrolling(HDC hdc,int px,int py,int w,int h,double *data,int dlen)
@@ -198,7 +362,7 @@ void DisplayHScrolling(HDC hdc,int px,int py,int w,int h,double *data,int dlen)
 		SetPixel(hdc,px+w-2,py+h-1-((int)(i*yscale+0.5)),colortable[(int)yval]);
 		//SetPixel(hdc,1023,1000-(i<<1)-1,colortable[(int)yval]);
 		/*
-		SelectObject(hdc,greenPen);
+		SelectObject(hdc,markerPen);
 		LineTo(hdc,x,y);
 
 		SelectObject(hdc,GetStockObject(BLACK_PEN));
@@ -276,7 +440,7 @@ void DisplayVScrolling(HDC hdc, int px, int py, int w, int h, double *data, int 
 		if (doublepix)
 			SetPixel(hdc, x + 1, y, c);
 		/*
-		SelectObject(hdc,greenPen);
+		SelectObject(hdc,markerPen);
 		LineTo(hdc,x,y);
 
 		SelectObject(hdc,GetStockObject(BLACK_PEN));

@@ -98,6 +98,8 @@ double gain=2.0;
 double GTVgain = 10.;
 double max,maxi;
 double tracker_freq;
+double phaseMeter[8];
+double meter[8];
 
 cw decoder;
 
@@ -178,11 +180,11 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 
 	// Make knobs for coherent decoder
 	ypos = 264;
-	createKnob(hWnd, &knobs[KNOB_Cpro],  L"Cpro :", 2, ypos += 24, norm4Map, NULL, 0, 400, 400);
-	createKnob(hWnd, &knobs[KNOB_Cint],  L"Cint :", 2, ypos += 24, milMap, NULL, 0, 400, 50);
+	createKnob(hWnd, &knobs[KNOB_Cpro],  L"Cpro :", 2, ypos += 24, norm40Map, NULL, 0, 400, 400);
+	createKnob(hWnd, &knobs[KNOB_Cint],  L"Cint :", 2, ypos += 24, milMap, NULL, 0, 400, 200);
 	createKnob(hWnd, &knobs[KNOB_Cdiff], L"Cdiff:", 2, ypos += 24, norm4Map, NULL, 0, 400, 0);
-	createKnob(hWnd, &knobs[KNOB_Gamma], L"gamma:", 2, ypos += 24, normMap, NULL, 0, 400, 30);
-	createKnob(hWnd, &knobs[KNOB_DemodTc], L"dmTc :", 2, ypos += 24, tcmapfullSR, tcFullSRDispMap, 0, 400, 5);
+	createKnob(hWnd, &knobs[KNOB_Gamma], L"gamma:", 2, ypos += 24, normMap, NULL, 0, 400, 50);
+	createKnob(hWnd, &knobs[KNOB_DemodTc], L"dmTc :", 2, ypos += 24, tcmapfullSR, tcFullSRDispMap, 0, 400, 35);
 
 
 
@@ -404,9 +406,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				//sigval = abuff[i<<1];   // Extract left channel out of stereo pair
 
 				// float test signal
-/*				theta += (testfreq + knobs[KNOB_freq].value)* 2 * pi / samplerate;
+				theta += (testfreq + knobs[KNOB_freq].value)* 2 * pi / samplerate;
 				if (theta>2 * pi) theta -= 2 * pi;
-				sigval = 0.1*32767.*cos(theta);	*/	
+				sigval = 0.1*32767.*cos(theta);		
 
 				sigval = abuff[i<<1];   // Extract left channel out of stereo pair
 
@@ -547,12 +549,18 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 // Data in dbuffr
 			 // build display at ypos
 			 dval = coherent_decode_block(dbuffr, MATH_BUFFER_SIZE);
-			 DisplayStripChart(hdc, xpos, ypos, 1024, 128, &dval, 1, -20, 20, 5);
-//			 DisplayStripChart(hdc, xpos, ypos, 1024, 128, &dval, 1, -1, 1);
+//			 DisplayStripChart(hdc, xpos, ypos, 896, 128, &dval, 1, -20, 20, 5);
+			 DisplayStripChart(hdc, xpos, ypos, 896, 128, &dval, 1, -20, 20,5);
 
 			 swprintf_s(strval, L"Ftrack %6.2lf", tracker_freq);
 			 BitBlt(hdc, 600, ypos, 64, 16, 0, 0, 0, WHITENESS);
 			 TextOut(hdc, 600, ypos, strval, lstrlenW(strval));
+
+			 DisplayPhasor(hdc, xpos + 900, ypos, 128, &phaseMeter[0], 3);
+
+			 DisplayMeterBar(hdc, 2, xpos + 1032, ypos, 0, 128, &meter[0], 1,-47, 3, 0.0);
+			 DisplayMeterBar(hdc, 2, xpos + 1032+10, ypos, 0, 128, &meter[1], 1, -47, 3, 0.0);
+
 			 ypos += 128;
 
 #if 1

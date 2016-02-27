@@ -8,6 +8,8 @@ void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int 
 
 
 void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,double ymin, double ymax, int grid = 0,int erase=1,int color=0);
+void DisplayPhasor(HDC hdc, int x, int y, int sz, double *data, int dataLen, double magmax=1.0, double phmax=3.1415926535);
+void DisplayMeterBar(HDC hdc, int dBflag, int x, int y, int sx,int sy, double *data, int dataLen=1, double min=0.0, double max=1.0, double tickmark=0.0);
 
 
 class minMaxMeter {

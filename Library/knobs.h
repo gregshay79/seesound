@@ -49,6 +49,7 @@ LPWSTR tcFullSRDispMap(double val);
 double linmap(int v, int min, int max);
 double normMap(int v, int min, int max);
 double norm4Map(int v, int min, int max);
+double norm40Map(int v, int min, int max);
 double milMap(int v, int min, int max);
 
 
