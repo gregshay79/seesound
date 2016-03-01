@@ -327,7 +327,7 @@ int _tmaintest(int argc, _TCHAR* argv[])
 
 double noiseSig, noiseEnergy = 0.;
 double sigEnergy = 0.;
-double totalEnergy = 0.;
+double postAGCEnergy = 0.;
 double demodFilterCoeff;
 struct zstate zmem1, zmem2;
 double sr = 8000.;
@@ -342,16 +342,17 @@ double mrState = 0., miState = 0.; //modulation product
 // PID loop, detection parameter, and time constants are to be hooked up to knobs.
 double coherent_decode(double x1)
 {
-	static double th1, th2, w1, w2, wb1, wb2, dw1, dw2;
-	static double xenergy = 0.;
+	static double th1, th2, w1, w2, wb1, wb2, dw1, dw2,dw2_freeze;
+	static double inEnergy = 0.;
 	double y1, x2, y2;
 	double sx;
 	double mr, mi;
 	static double errint, lasterr;
 	double err, errdiff;
 	static double tscale=0.;
-	static double sigenergy = 0;
-	double meanvariance,meandeviation;
+//	static double sigenergy = 0;
+	double meanvariance;
+//	double meandeviation;
 	double agcgain;
 
 	int i, j;
@@ -425,15 +426,15 @@ double coherent_decode(double x1)
 
 	
 	// create agc here
-	xenergy = xenergy*.9999 + x1*x1*.0001;
-	agcgain = 1 / (sqrt(xenergy) + .025); //max 32dB gain
+	inEnergy = inEnergy*.9999 + x1*x1*.0001;
+	agcgain = 1 / (sqrt(inEnergy) + .025); //max 32dB gain
 	x1 *= agcgain;
 
-	meter[0] = xenergy; // 20 * log10(sqrt(xenergy) + 1E-15);
+	meter[0] = inEnergy; // 20 * log10(sqrt(inEnergy) + 1E-15);
 
-	totalEnergy = totalEnergy*.9999 + x1*x1*.0001;
+	postAGCEnergy = postAGCEnergy*.9999 + x1*x1*.0001;
 
-	meter[1] = totalEnergy; // 20 * log10(sqrt(totalEnergy) + 1E-15);
+	meter[1] = postAGCEnergy; // 20 * log10(sqrt(postAGCEnergy) + 1E-15);
 	
 	//		sx = sin(th1);  // for correctness checking
 	y1 = fir_hilbert(x1, hilbertKernel64, &HilbertFilterState);
@@ -483,18 +484,23 @@ double coherent_decode(double x1)
 
 	err = complexLogUnrolled(mr, mi);
 
-	sigenergy = .8 * sigenergy + .2*(x1*x1);
+//	sigenergy = .8 * sigenergy + .2*(x1*x1);
 
 	meanvariance = mr*mr + mi*mi;
-	meandeviation = sqrt(meanvariance);
+//	meandeviation = sqrt(meanvariance);
 
 	phaseMeter[0] = mr;// / meandeviation;
 	phaseMeter[1] = mi;// / meandeviation;
 	phaseMeter[2] = err;
 
-	err = err * (meanvariance); // scale error by the inverse variance of the demod signal
+	// scale error by the mean variance of the demod signal, the variance is the 
+	// measure of the energy.
+	// If the input is all noise, the energy of the filtered demod is low, toward zero
+	// If the input has strong signal, the energy is approx 1.0 
+	err = err * (meanvariance); 
 
-	
+	// Estimate of the SNR is the ratio of the input energy postAGCEnergy to meanvariance.
+	meter[2] = meanvariance;
 
 	if (initflag) {
 		initflag = 0;
@@ -508,6 +514,11 @@ double coherent_decode(double x1)
 	control = Cpro*err + Cint*errint + Cdiff*errdiff;
 
 	dw2 = gamma * control;
+
+	if (knobs[KNOB_freeze].value < .5) {
+		dw2 = dw2_freeze;
+	}
+	else dw2_freeze = dw2;
 
 	//		printf("%lg, %lg, %lg\n", x1, y1, sx);
 //	printf("step %d, %8lg, %8lg, %8lg, %8lg, %8lg, %8lg\n", i, w2, err * 180 / pi, errint * 180 / pi, errdiff * 180 / pi, control, x1);
@@ -613,11 +624,11 @@ int _tmain_syncdecode(int argc, _TCHAR* argv[])
 
 	}
 
-	totalEnergy = sqrt(totalEnergy);
+	postAGCEnergy = sqrt(postAGCEnergy);
 	sigEnergy = sqrt(sigEnergy);
-	noiseEnergy = totalEnergy - sigEnergy;
+	noiseEnergy = postAGCEnergy - sigEnergy;
 	fprintf(stderr,"Total energy = %lg, Signal energy = %lg, Noise = %lg\n", 
-		(totalEnergy), (sigEnergy), (noiseEnergy));
+		(postAGCEnergy), (sigEnergy), (noiseEnergy));
 	fprintf(stderr, "SNR = %lgdB\n", 20 * log10(sqrt(sigEnergy) / noiseEnergy));
 
 	fir_free(&HilbertFilterState);

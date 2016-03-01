@@ -18,7 +18,8 @@ extern double pi;
 // dBflag = 0, linear meter
 // dBflag = 1, dB transform on data
 // dBflag = 2, data is sum square value, take sqrt() before dB
-void DisplayMeterBar(HDC hdc, int dBflag, int x, int y, int sx, int sy, double *data, int dataLen, double min, double max, double tickmark)
+void DisplayMeterBar(HDC hdc, int dBflag, int x, int y, int sx, int sy, 
+				double *data, int dataLen, double min, double max, double tickmark, int drawFromOrigin)
 {
 	HPEN markerPen;
 	HGDIOBJ prevObj;
@@ -26,6 +27,7 @@ void DisplayMeterBar(HDC hdc, int dBflag, int x, int y, int sx, int sy, double *
 	int color;
 	TCHAR strval[8];
 	int i, ival;
+	int itick;
 	double scale, v;
 	int width = 8;
 
@@ -62,12 +64,12 @@ void DisplayMeterBar(HDC hdc, int dBflag, int x, int y, int sx, int sy, double *
 	markerPen = CreatePen(PS_SOLID, 1, RGB(64, 64, 128)); //Tickmark dim blue grey
 	SelectObject(hdc, markerPen);
 	if (sx > sy) { // horizontal
-		MoveToEx(hdc, i=(int)(x + (0.5+scale*(tickmark-min))), y, NULL);
-		LineTo(hdc, i, y + +sy);
+		MoveToEx(hdc, itick=(int)(x + (0.5+scale*(tickmark-min))), y, NULL);
+		LineTo(hdc, itick, y+sy);
 	}
 	else { // vertical
-		MoveToEx(hdc, x, i = (int)(y+sy - (0.5 + scale*(tickmark - min))), NULL);
-		LineTo(hdc, x+sx,i);
+		MoveToEx(hdc, x, itick = (int)(y + sy - (0.5 + scale*(tickmark - min))), NULL);
+		LineTo(hdc, x + sx, itick);
 	}
 	SelectObject(hdc, prevObj);
 	DeleteObject(markerPen);
@@ -87,13 +89,25 @@ void DisplayMeterBar(HDC hdc, int dBflag, int x, int y, int sx, int sy, double *
 
 	ival = ((int)((v-min) * scale + 0.5));
 
-	if (sx > sy){
+	if (sx > sy){ // horizontal
 		BOUND(ival, 1, sx - 1);
-		PatBlt(hdc, x + 1, y - 1, ival, sy - 2, PATCOPY);
+		if (drawFromOrigin) {
+
+		} else
+			PatBlt(hdc, x + 1, y - 1, ival, sy - 2, PATCOPY);
 	}
-	else {
+	else { // vertical
 		BOUND(ival, 1, sy - 1);
-		PatBlt(hdc, x + 1, y - 1-ival, sx-2, ival, PATCOPY);
+		if (drawFromOrigin) {
+			ival = y - 1 - ival;
+			if (ival > itick)
+				PatBlt(hdc, x + 1, itick, sx - 2, ival-itick, PATCOPY);
+			else
+				PatBlt(hdc, x + 1, ival, sx - 2, itick-ival, PATCOPY);
+		}
+		else {
+			PatBlt(hdc, x + 1, y-1-ival, sx - 2, ival, PATCOPY);
+		}
 	}
 
 	SelectObject(hdc, prevObj);
@@ -251,9 +265,6 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 	SelectObject(hdc,prevPen);
 	DeleteObject(markerPen);
 }
-
-
-
 
 void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int dlen, double dmin, double dmax, double grid)
 {
@@ -464,7 +475,6 @@ minMaxMeter::minMaxMeter()
 		reset(i);
 	}
 }
-
 
 void minMaxMeter::reset(int ix,double maxBound)
 {

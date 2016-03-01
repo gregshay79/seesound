@@ -14,6 +14,8 @@ bool toggle = false;
 
 struct knob knobs[MAX_KNOB];
 
+struct button buttons[MAX_BUTTON];
+
 double linmap(int v, int min, int max)
 {
 	double val = ((double)(v)-min) / (max - min);
@@ -148,6 +150,10 @@ void destroyKnobs()
 		if (knobs[i].hwnd)
 			DestroyWindow(knobs[i].hwnd);
 	}
+	for (i = 0; i < MAX_BUTTON; i++){
+		if (buttons[i].hwnd)
+			DestroyWindow(buttons[i].hwnd);
+	}
 }
 
 LRESULT CALLBACK KnobProc(HWND ws, UINT Message, WPARAM wParam, LPARAM lParam)
@@ -214,4 +220,84 @@ LRESULT CALLBACK KnobProc(HWND ws, UINT Message, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	return CallWindowProc(original_procedure, ws, Message, wParam, lParam);
+}
+
+
+// Button Proc takes action depending on type of button
+// type = 0, momentary value = 0, push value = 1
+// type = 1, multi value click through values 0,1,2..n with n string names
+//   Note: PON/POFF value = 0 or 1 toggles, is a degenerate case of type 1, nValues = 1
+LRESULT CALLBACK ButtonProc(HWND ws, UINT Message, WPARAM wParam, LPARAM lParam)
+{
+	PAINTSTRUCT ps;
+	HDC hdc;
+	static POINT anchor, cp;
+	static bool captured = false;
+	struct button *pB;
+	int ix;
+	int ival;
+	int dx, dy, distance, trigger = 0;
+	//	TCHAR msgstr[16];
+	for (ix = 0; ix < MAX_KNOB; ix++) {
+		if ((buttons[ix].hwnd == ws) || (buttons[ix].hwnd == NULL))
+			break;
+	}
+
+	if (buttons[ix].hwnd) {
+		pB = &buttons[ix];
+
+		switch (Message){
+
+		case WM_PAINT:
+			hdc = BeginPaint(ws, &ps);
+			if ((pB->type == 0) && (pB->value == 1)) {
+				BitBlt(hdc, 0, 0, BUTTONSIZE, BUTTONSIZE, 0, 0, 0, BLACKNESS);
+			} else
+				BitBlt(hdc, 0, 0, BUTTONSIZE, BUTTONSIZE, 0, 0, 0, WHITENESS);
+			TextOut(hdc, 0, 0, pB->name[pB->value], lstrlenW(pB->name[pB->value]));
+			EndPaint(ws, &ps);
+			break;
+
+		case WM_LBUTTONDOWN:
+			if (++pB->value > pB->nValues)
+				pB->value = 0;
+			RedrawWindow(pB->hwnd, NULL, NULL, RDW_INVALIDATE);
+
+			break;
+
+		case WM_LBUTTONUP:
+			if (pB->type == 0) {
+				pB->value = 0;
+				RedrawWindow(pB->hwnd, NULL, NULL, RDW_INVALIDATE);
+			}
+			break;
+		}
+	}
+	return CallWindowProc(original_procedure, ws, Message, wParam, lParam);
+}
+
+HWND createButton(HWND hwnd, int x, int y, struct button *pB, TCHAR **name, int type, int nValues)
+{
+	int i;
+	HINSTANCE instance = (HINSTANCE)GetWindowLong(hwnd, GWL_HINSTANCE);
+
+	pB->pos.left = x;
+	pB->pos.right = x + BUTTONSIZE;
+	pB->pos.top = y;
+	pB->pos.bottom = y + BUTTONSIZE;
+
+	if (type != 1) nValues = 1;
+	pB->nValues = nValues;
+	pB->type = type;
+	pB->value = 0;
+	
+	for (i = 0; i <= nValues; i++) {
+		lstrcpy(pB->name[i], name[i]);
+	}
+
+	// create window here
+	pB->hwnd = CreateWindowW(L"Button", 0, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, x, y, BUTTONSIZE, BUTTONSIZE, hwnd, 0, instance, 0);
+	//subclassing
+	original_procedure = (WNDPROC)SetWindowLong(pB->hwnd, GWL_WNDPROC, (long)ButtonProc);
+	return pB->hwnd;
 }

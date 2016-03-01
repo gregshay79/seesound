@@ -139,7 +139,7 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 	MyRegisterClass(hInst);
 
 	hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-		0 /*CW_USEDEFAULT*/, 0, 1200 /*CW_USEDEFAULT*/, 1064, NULL, NULL, hInst, NULL);
+		0 /*CW_USEDEFAULT*/, 0, 1280 /*CW_USEDEFAULT*/, 1064, NULL, NULL, hInst, NULL);
 
 	if (!hWnd) {
 		return FALSE;
@@ -173,8 +173,14 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 	// make a gain knob
 	createKnob(hWnd, &knobs[KNOB_INGAIN], L"Inp Gain:", 2, 0, norm4Map, dBmap, 0, 200, 50);
 
+	// Make a Push-on/push-off signal select button
+
+	TCHAR bnames1[2][8] = { L"in", L"tst" };
+	TCHAR *bnamesp[2] = { bnames1[0], bnames1[1] };
+
+	createButton(hWnd, 2, 18, &buttons[BUTTON_input_select], bnamesp, 0, 1);
 	// Make fcoeff knob
-	createKnob(hWnd, &knobs[KNOB_FTc], L"F Tc:", 2, 32, tcmapblockSR, tcBlockSRDispMap, 0, 400, 25);
+	createKnob(hWnd, &knobs[KNOB_FTc], L"F Tc:", 2, 36, tcmapblockSR, tcBlockSRDispMap, 0, 400, 25);
 	createKnob(hWnd, &knobs[KNOB_TTc], L"T Tc:", 2, 64, tcmapblockSR, tcBlockSRDispMap, 0, 400, 25);
 	createKnob(hWnd, &knobs[KNOB_freq], L"F delta:", 2, 80, norm4Map, NULL, 0, 400, 25);
 
@@ -185,6 +191,8 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 	createKnob(hWnd, &knobs[KNOB_Cdiff], L"Cdiff:", 2, ypos += 24, norm4Map, NULL, 0, 400, 0);
 	createKnob(hWnd, &knobs[KNOB_Gamma], L"gamma:", 2, ypos += 24, normMap, NULL, 0, 400, 50);
 	createKnob(hWnd, &knobs[KNOB_DemodTc], L"dmTc :", 2, ypos += 24, tcmapfullSR, tcFullSRDispMap, 0, 400, 35);
+	createKnob(hWnd, &knobs[KNOB_freeze], L"Fz :", 2, ypos += 24, normMap, NULL, 0,100, 100);
+
 
 
 
@@ -242,6 +250,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	double wincomp;
 	double dval;
 	TCHAR strval[32];
+	double indicatorFreq;
 
 	//	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON | 0x0040 | _MM_MASK_UNDERFLOW | _MM_MASK_DENORM);
@@ -405,13 +414,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 				//sigval = abuff[i<<1];   // Extract left channel out of stereo pair
 
-				// float test signal
-				theta += (testfreq + knobs[KNOB_freq].value)* 2 * pi / samplerate;
-				if (theta>2 * pi) theta -= 2 * pi;
-				sigval = 0.1*32767.*cos(theta);		
-
-				sigval = abuff[i<<1];   // Extract left channel out of stereo pair
-
+				if (buttons[BUTTON_input_select].value == 1) {
+					// float test signal
+					theta += (testfreq + knobs[KNOB_freq].value) * 2 * pi / samplerate;
+					if (theta>2 * pi) theta -= 2 * pi;
+					sigval = 0.5*32767.*cos(theta);
+				} else
+					sigval = abuff[i<<1];   // Extract left channel out of stereo pair
 
 //				sigval = biquad(sigval,BQhipass2k,&filterstate[0]);
 //				sigval = biquad(sigval,BQhipass2k,&filterstate[2]);
@@ -561,6 +570,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 DisplayMeterBar(hdc, 2, xpos + 1032, ypos, 0, 128, &meter[0], 1,-47, 3, 0.0);
 			 DisplayMeterBar(hdc, 2, xpos + 1032+10, ypos, 0, 128, &meter[1], 1, -47, 3, 0.0);
 
+			 // Meter[] values have energies, meter[1] is total post AGC, meter[2] is demodulated
+			 double snr = 0.707*sqrt(meter[2]) / (sqrt(meter[1]) - 0.707*sqrt(meter[2]));
+			 snr = fabs(snr);
+			 DisplayMeterBar(hdc, 2, xpos + 1032 + 20, ypos, 0, 128, &snr, 1, -20, 20, 0.0,1);
+
 			 ypos += 128;
 
 #if 1
@@ -636,10 +650,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				}
 			}
 
-			testfreq = SAMPLE_FREQ/maxi;
+			indicatorFreq = SAMPLE_FREQ/maxi;
 #endif
 			//sum = sum/autocorr[0];
-			swprintf(pbuff,80,L"(%ld,%ld) autocorrF=% 5.2f, freq= % 5.2f", (long)(tmin*cpu_freq_factor),(long)(tmax*cpu_freq_factor),autocorrFilt[0],testfreq);  
+			swprintf(pbuff, 80, L"(%ld,%ld) autocorrF=% 5.2f, freq= % 5.2f", (long)(tmin*cpu_freq_factor), (long)(tmax*cpu_freq_factor), autocorrFilt[0], indicatorFreq);
 			
 			PatBlt(hdc, 0, ypos - 16, 1280, 16, BLACKNESS);
 			SetTextColor(hdc, RGB(0, 255, 255));
