@@ -2,6 +2,7 @@
 //#include "SeeSound.h"
 #include <math.h>
 #include "DisplayFunctions.h"
+#include "knobs.h"
 
 #define BOUND(Y,L,H) (Y=Y<L?L:(Y>H)?H:Y)
 
@@ -154,9 +155,9 @@ void DisplayPhasor(HDC hdc, int x, int y, int sz, double *data, int dataLen, dou
 	//if datalen ==3, 3rd value is the unwrapped phase angle
 	if (dataLen == 3){
 //		swprintf_s(strval, L"%2d", (int)((data[2]+pi) / (2 * pi)));
-		swprintf_s(strval, L"%3.2lf", data[2]/(2*pi) );
+		swprintf_s(strval, L"%3.1lf", data[2]/(2*pi) );
 
-		TextOut(hdc, x+sz-32, y+4, strval, lstrlenW(strval));
+		TextOut(hdc, x+sz-40, y+4, strval, lstrlenW(strval));
 	}
 
 	// Display phase vector
@@ -193,7 +194,6 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 	double xscale = ((double)(w))/dataLen;
 	int gridinc = abs(grid);
 
-//	markerPen = CreatePen(PS_SOLID,1,RGB(0,255,128)); // green pen
 
 	// Erase previous
 	if (erase)
@@ -220,18 +220,18 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 			//Draw vertical grid lines
 		if (grid > 0) {
 			for (i = gridinc; i < w / xscale; i += gridinc) {
-				MoveToEx(hdc, x+i*xscale, y + 1, NULL);
-				LineTo(hdc, x+i*xscale, y + h - 1);
+				MoveToEx(hdc, (int)(x+i*xscale), y + 1, NULL);
+				LineTo(hdc, (int)(x+i*xscale), y + h - 1);
 			}
 		}
 		//Draw horizontal grid lines
 		for (i = gridinc; i<h / yscale / 2; i += gridinc) {
 			int ypos;
-			ypos = y + ycenter + i*yscale;
+			ypos = (int)(y + ycenter + i*yscale);
 			if (ypos>y+h)continue;
 			MoveToEx(hdc,x+1,ypos,NULL);
 			LineTo(hdc,x+w-1,ypos);
-			ypos = y + ycenter - i*yscale;
+			ypos = (int)(y + ycenter - i*yscale);
 			MoveToEx(hdc,x+1,ypos,NULL);
 			LineTo(hdc,x+w-1,ypos);
 		}
@@ -264,6 +264,98 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 
 	SelectObject(hdc,prevPen);
 	DeleteObject(markerPen);
+
+
+}
+
+extern HWND hWnd;
+// If grid is zero, draw no grid.
+// If grid is nonzero and positive, draw an x/y grid at the given increment of input units (before display gain).
+// if grid is negative, draw only a y grid 
+void DisplayTriggeredWaveform(HDC hdc, int x, int y, int w, int h, double *data, int dataLen, double ymin, double ymax, int grid, int erase, int color,
+struct button *triggerModeButton, struct knob *threshKnob, struct button *armButton)
+{
+	int i;
+
+	static int triggerState = 2;
+	static double datamemory[1024];
+	static int memPosition = 0;
+
+	// Implement trigger logic
+	// triggerMode 0 : no trigger, free run
+	// triggerMode 1 : auto trigger, use threshold
+	// triggerMode 2 : one shot, use threshold, arm button to arm
+
+	// trigger state, data collection state:
+	// 0 do nothing
+	// 1 waiting for trigger to happen
+	// 2 collection data in memory after trigger happens, or always if no trigger mode
+	// 3 display memory when full
+	// 4 reset to #1 if autotrigger mode, reset to 0 if single shot mode
+
+	switch (triggerState) {
+	case(0) : // waiting for arm button to re-arm
+		if (armButton && armButton->value == 1) {
+			triggerState = 1;
+		}
+		if (triggerModeButton->value == 0) triggerState = 2;
+		break;
+	case(1) :  //Wait for trigger
+		//scan input data for value greater than trigger threshold
+		for (i = 0; i < dataLen; i++){
+			if ((!threshKnob) || (data[i] >= threshKnob->value) || (triggerModeButton->value==0)){
+				memcpy(datamemory, &data[i], sizeof(double)*(dataLen - i));
+				memPosition = dataLen - i;
+				triggerState = 2; // next, complete filling memory
+				if (armButton) {
+					armButton->value = 0;
+					RedrawWindow(armButton->hwnd, NULL, NULL, RDW_INVALIDATE);
+					UpdateWindow(armButton->hwnd);
+				}
+			}
+		}
+			break;
+	case(2) :
+		i = dataLen - memPosition;
+		if (i > 0) {
+			memcpy(&datamemory[memPosition], data, sizeof(double)*i);
+		}
+		memPosition += i;
+		if (memPosition == dataLen) {
+			triggerState = 3;
+			memPosition = 0;
+		}
+		break;
+	case(3) :
+		break;
+	default:
+		break;
+	}
+
+	//Decide if waiting for trigger, or displaying
+	//	if (triggerModeButton && (triggerModeButton->value == 2) && (triggerState == 0))
+	//		return; 
+
+	//
+	//	markerPen = CreatePen(PS_SOLID,1,RGB(0,255,128)); // green pen
+
+	if (triggerState == 3) {
+		DisplayWaveform(hdc, x, y, w, h, datamemory, dataLen, ymin, ymax, grid, erase, color);
+
+	// Decide what to do next
+	// one shot mode, 
+	if (!triggerModeButton || (triggerModeButton->value == 0)) {
+		triggerState = 2; // keep running, no trigger
+	}
+	else
+		if (triggerModeButton->value == 1) {
+			triggerState = 1; // go wait for trigger
+		}
+		else
+			if (triggerModeButton->value == 2)
+				triggerState = 0; // go wait for re-arm
+	}
+
 }
 
 void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int dlen, double dmin, double dmax, double grid)
@@ -274,7 +366,7 @@ void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int 
 	double valscale;
 	static int lastpos;
 
-	valscale = (h-1) / (dmax - dmin);
+	valscale = (h-1.0) / (dmax - dmin);
 
 	//Draw bounding box and center line
 	prevPen = SelectObject(hdc, GetStockObject(WHITE_PEN));
@@ -299,7 +391,7 @@ void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int 
 		prevPen = SelectObject(hdc, markerPen);
 		SetBkColor(hdc, RGB(0, 0, 0));
 		i = 1;
-		while ((y = i*grid*valscale+0.5)<h/2) 
+		while ((y = (int)(i*grid*valscale+0.5)) < h/2) 
 			{
 				MoveToEx(hdc, px, py+y + h / 2 , NULL);
 				LineTo(hdc, px + w, py+y + h / 2);
@@ -487,7 +579,7 @@ void minMaxMeter::set(int ix, double value)
 	int i;
 	if (value < mmin[ix]) mmin[ix] = value;
 	if (value > mmax[ix]) mmax[ix] = value;
-	i = .5 + (value / hmax[ix])*HISTMAX;
+	i = (int)(.5 + (value / hmax[ix])*HISTMAX);
 	if (i>HISTMAX-1) i = HISTMAX-1;
 	hist[ix][i] += 1.;
 }
@@ -512,7 +604,7 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 
 	for (i = 0; i < HISTMAX; i++) {
 		MoveToEx(hdc, px + i, py + h,NULL);
-		y =  (hist[ix][i]*= 0.95);
+		y =  (int)(hist[ix][i]*= 0.95);
 		if (y>h) y = h;
 		LineTo(hdc, px + i, py + h - y);
 	}
@@ -522,14 +614,14 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 
 void minMaxMeter::draw(HDC hdc, int px, int py, int h, double valmax, int ix, COLORREF color)
 {
-	int i,ymax, ymin;
+	int ymax, ymin;
 	//HPEN nPen;
 	HGDIOBJ prevPen;
 
-	ymin = h*mmin[ix] / valmax; 
+	ymin = (int)(h*mmin[ix] / valmax); 
 	ymin = ymin < 0 ? 0 : ymin;
 
-	ymax = h*mmax[ix] / valmax;
+	ymax = (int)(h*mmax[ix] / valmax);
 	ymax = ymax > h ? h : ymax;
 
 	if (!nPen[ix]) {

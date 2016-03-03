@@ -175,14 +175,21 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 
 	// Make a Push-on/push-off signal select button
 
-	TCHAR bnames1[2][8] = { L"in", L"tst" };
-	TCHAR *bnamesp[2] = { bnames1[0], bnames1[1] };
+	TCHAR bnames[16][8] = { L"in", L"tst",L"run",L"hld",L"fre",L"aut",L"1sh",L"arm",L"go",L"end" };
+	TCHAR *bnamesp[16] = { bnames[0], bnames[1],bnames[2],bnames[3],bnames[4],bnames[5],bnames[6],
+						bnames[7],bnames[8],bnames[9]};
 
-	createButton(hWnd, 2, 18, &buttons[BUTTON_input_select], bnamesp, 0, 1);
+	createButton(hWnd, 2, 18, &buttons[BUTTON_input_select], bnamesp, BUTTON_TYPE_MULTI, 2);
 	// Make fcoeff knob
 	createKnob(hWnd, &knobs[KNOB_FTc], L"F Tc:", 2, 36, tcmapblockSR, tcBlockSRDispMap, 0, 400, 25);
 	createKnob(hWnd, &knobs[KNOB_TTc], L"T Tc:", 2, 64, tcmapblockSR, tcBlockSRDispMap, 0, 400, 25);
 	createKnob(hWnd, &knobs[KNOB_freq], L"F delta:", 2, 80, norm4Map, NULL, 0, 400, 25);
+
+// Controls for triggered waveform display
+	createButton(hWnd, 1160, 16, &buttons[BUTTON_trigger_mode], &bnamesp[4],BUTTON_TYPE_MULTI,3);
+	createButton(hWnd, 1160, 48, &buttons[BUTTON_trigger_arm], &bnamesp[7], BUTTON_TYPE_MULTI,2);
+	createKnob(hWnd, &knobs[KNOB_trig_thresh], L"Thresh", 1160, 80, normMap, NULL, 0, 400, 200);
+
 
 	// Make knobs for coherent decoder
 	ypos = 264;
@@ -191,7 +198,10 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 	createKnob(hWnd, &knobs[KNOB_Cdiff], L"Cdiff:", 2, ypos += 24, norm4Map, NULL, 0, 400, 0);
 	createKnob(hWnd, &knobs[KNOB_Gamma], L"gamma:", 2, ypos += 24, normMap, NULL, 0, 400, 50);
 	createKnob(hWnd, &knobs[KNOB_DemodTc], L"dmTc :", 2, ypos += 24, tcmapfullSR, tcFullSRDispMap, 0, 400, 35);
-	createKnob(hWnd, &knobs[KNOB_freeze], L"Fz :", 2, ypos += 24, normMap, NULL, 0,100, 100);
+	
+//	createKnob(hWnd, &knobs[KNOB_freeze], L"Fz :", 2, ypos += 24, normMap, NULL, 0,100, 100);
+	createButton(hWnd, 2, ypos += 24, &buttons[BUTTON_hold_loop], &bnamesp[2], BUTTON_TYPE_MOMENTARY, 2);
+
 
 
 
@@ -449,7 +459,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 }
 
 
-			DisplayWaveform(hdc,128+8+512,16,512,256,dbuffr,FFT_SIZE,-1.0,1.0);
+			DisplayTriggeredWaveform(hdc,128+8+512,16,512,256,dbuffr,FFT_SIZE,-1.0,1.0,0,1,0,
+							&buttons[BUTTON_trigger_mode],&knobs[KNOB_trig_thresh],&buttons[BUTTON_trigger_arm]);
 			
 			//DisplayWaveform(hdc, 256, 1, 512, 128, wbuff, FFT_SIZE, 1.);
 

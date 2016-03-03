@@ -515,7 +515,7 @@ double coherent_decode(double x1)
 
 	dw2 = gamma * control;
 
-	if (knobs[KNOB_freeze].value < .5) {
+	if (buttons[BUTTON_hold_loop].value==1) {
 		dw2 = dw2_freeze;
 	}
 	else dw2_freeze = dw2;

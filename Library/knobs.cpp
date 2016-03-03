@@ -251,22 +251,24 @@ LRESULT CALLBACK ButtonProc(HWND ws, UINT Message, WPARAM wParam, LPARAM lParam)
 		case WM_PAINT:
 			hdc = BeginPaint(ws, &ps);
 			if ((pB->type == 0) && (pB->value == 1)) {
-				BitBlt(hdc, 0, 0, BUTTONSIZE, BUTTONSIZE, 0, 0, 0, BLACKNESS);
+				BitBlt(hdc, 0, 0, BUTTONSIZEX, BUTTONSIZEY, 0, 0, 0, BLACKNESS);
 			} else
-				BitBlt(hdc, 0, 0, BUTTONSIZE, BUTTONSIZE, 0, 0, 0, WHITENESS);
+				BitBlt(hdc, 0, 0, BUTTONSIZEX, BUTTONSIZEY, 0, 0, 0, WHITENESS);
 			TextOut(hdc, 0, 0, pB->name[pB->value], lstrlenW(pB->name[pB->value]));
 			EndPaint(ws, &ps);
 			break;
 
 		case WM_LBUTTONDOWN:
-			if (++pB->value > pB->nValues)
+			if (pB->value + 1 >= pB->nValues)
 				pB->value = 0;
+			else
+				pB->value++;
 			RedrawWindow(pB->hwnd, NULL, NULL, RDW_INVALIDATE);
 
 			break;
 
 		case WM_LBUTTONUP:
-			if (pB->type == 0) {
+			if (pB->type == BUTTON_TYPE_MOMENTARY) {
 				pB->value = 0;
 				RedrawWindow(pB->hwnd, NULL, NULL, RDW_INVALIDATE);
 			}
@@ -282,11 +284,10 @@ HWND createButton(HWND hwnd, int x, int y, struct button *pB, TCHAR **name, int 
 	HINSTANCE instance = (HINSTANCE)GetWindowLong(hwnd, GWL_HINSTANCE);
 
 	pB->pos.left = x;
-	pB->pos.right = x + BUTTONSIZE;
+	pB->pos.right = x + BUTTONSIZEX;
 	pB->pos.top = y;
-	pB->pos.bottom = y + BUTTONSIZE;
+	pB->pos.bottom = y + BUTTONSIZEY;
 
-	if (type != 1) nValues = 1;
 	pB->nValues = nValues;
 	pB->type = type;
 	pB->value = 0;
@@ -296,7 +297,7 @@ HWND createButton(HWND hwnd, int x, int y, struct button *pB, TCHAR **name, int 
 	}
 
 	// create window here
-	pB->hwnd = CreateWindowW(L"Button", 0, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, x, y, BUTTONSIZE, BUTTONSIZE, hwnd, 0, instance, 0);
+	pB->hwnd = CreateWindowW(L"Button", 0, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, x, y, BUTTONSIZEX, BUTTONSIZEY, hwnd, 0, instance, 0);
 	//subclassing
 	original_procedure = (WNDPROC)SetWindowLong(pB->hwnd, GWL_WNDPROC, (long)ButtonProc);
 	return pB->hwnd;

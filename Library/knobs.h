@@ -9,9 +9,14 @@
 #define MAX_KNOB 16
 #endif
 
-#define BUTTONSIZE 16
+#define BUTTONSIZEX 28
+#define BUTTONSIZEY 16
+
 #define MAX_BUTTON 16
 #define MAXBUTTONVALUES 4
+
+#define BUTTON_TYPE_MOMENTARY 0
+#define BUTTON_TYPE_MULTI 1
 
 #define	KNOB_INGAIN	0
 #define KNOB_FTc		1
@@ -22,9 +27,12 @@
 #define KNOB_DemodTc	6
 #define KNOB_Gamma		7
 #define KNOB_freq		8
-#define KNOB_freeze		9
+#define KNOB_trig_thresh 9
 
 #define BUTTON_input_select 0
+#define BUTTON_hold_loop	1
+#define BUTTON_trigger_mode	2
+#define BUTTON_trigger_arm	3
 
 struct knob {
 	HWND hwnd;
