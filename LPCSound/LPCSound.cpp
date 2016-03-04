@@ -85,6 +85,7 @@ double samplerate, block_size;
 extern wchar_t dummybuffer[];
 
 extern double coherent_decode_block(double *dbuffr, int dlen);
+extern double spychannel[];
 
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
@@ -125,6 +126,14 @@ void marktimeEnd(){
 		if (tdiff < tmin) tmin = tdiff;
 	}
 }
+
+TCHAR bnames[16][16] = { L"in", L"tst", L"run", L"hld", L"fre", L"aut", L"1sh", L"arm", L"go", L"end" };
+TCHAR *bnamesp[16] = { bnames[0], bnames[1], bnames[2], bnames[3], bnames[4], bnames[5], bnames[6],
+bnames[7], bnames[8], bnames[9] };
+
+TCHAR insignames[8][8] = { L"inp", L"sine", L"imp", L"pls", L"mod" };
+TCHAR *insignamesp[8] = { insignames[0], insignames[1], insignames[2], insignames[3], insignames[4] };
+
 
 DWORD WINAPI doWindowsStuff(LPVOID param)
 {
@@ -175,11 +184,8 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 
 	// Make a Push-on/push-off signal select button
 
-	TCHAR bnames[16][8] = { L"in", L"tst",L"run",L"hld",L"fre",L"aut",L"1sh",L"arm",L"go",L"end" };
-	TCHAR *bnamesp[16] = { bnames[0], bnames[1],bnames[2],bnames[3],bnames[4],bnames[5],bnames[6],
-						bnames[7],bnames[8],bnames[9]};
 
-	createButton(hWnd, 2, 18, &buttons[BUTTON_input_select], bnamesp, BUTTON_TYPE_MULTI, 2);
+	createButton(hWnd, 2, 18, &buttons[BUTTON_input_select], insignamesp, BUTTON_TYPE_MULTI, 5);
 	// Make fcoeff knob
 	createKnob(hWnd, &knobs[KNOB_FTc], L"F Tc:", 2, 36, tcmapblockSR, tcBlockSRDispMap, 0, 400, 25);
 	createKnob(hWnd, &knobs[KNOB_TTc], L"T Tc:", 2, 64, tcmapblockSR, tcBlockSRDispMap, 0, 400, 25);
@@ -261,6 +267,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	double dval;
 	TCHAR strval[32];
 	double indicatorFreq;
+	int sampcount = 0;
 
 	//	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON | 0x0040 | _MM_MASK_UNDERFLOW | _MM_MASK_DENORM);
@@ -423,14 +430,34 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				//yval = abuff[i<<1]>>7;
 
 				//sigval = abuff[i<<1];   // Extract left channel out of stereo pair
+				theta += (testfreq + knobs[KNOB_freq].value) * 2 * pi / samplerate;
+				if (theta>2 * pi) theta -= 2 * pi;
 
-				if (buttons[BUTTON_input_select].value == 1) {
-					// float test signal
-					theta += (testfreq + knobs[KNOB_freq].value) * 2 * pi / samplerate;
-					if (theta>2 * pi) theta -= 2 * pi;
+				if (++sampcount == (1 << 16)) sampcount = 0;
+
+				switch (buttons[BUTTON_input_select].value) {
+				case 0:
+					sigval = abuff[i << 1];   // Extract left channel out of stereo pair
+					break;
+				case 1:
+					// sine test signal
 					sigval = 0.5*32767.*cos(theta);
-				} else
-					sigval = abuff[i<<1];   // Extract left channel out of stereo pair
+					break;
+				case 2:// impulse train
+					sigval = 0.5*32767.* ((sampcount & 1023 ) == 0 ? 1.0 : 0);
+					break;
+				case 3: // pulse train 50ms wide pulses at 200ms rate
+					sigval = 0.5*32767.* ((sampcount & (1023-255)) == 0 ? 1.0 : 0);
+					break;
+				case 4: // modulated pulse train
+					sigval = 0.5*32767.* ((sampcount & (1023-255)) == 0 ? 1.0 : 0);
+					sigval *= cos(theta);
+
+					break;
+
+				default:
+					break;
+				};
 
 //				sigval = biquad(sigval,BQhipass2k,&filterstate[0]);
 //				sigval = biquad(sigval,BQhipass2k,&filterstate[2]);
@@ -459,7 +486,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 }
 
 
-			DisplayTriggeredWaveform(hdc,128+8+512,16,512,256,dbuffr,FFT_SIZE,-1.0,1.0,0,1,0,
+			DisplayTriggeredWaveform(hdc,128+8+512,16,512,256,spychannel /*dbuffr*/ ,FFT_SIZE,-1.0,1.0,0,1,0,
 							&buttons[BUTTON_trigger_mode],&knobs[KNOB_trig_thresh],&buttons[BUTTON_trigger_arm]);
 			
 			//DisplayWaveform(hdc, 256, 1, 512, 128, wbuff, FFT_SIZE, 1.);

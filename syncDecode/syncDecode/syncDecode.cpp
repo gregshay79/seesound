@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include "../Library/knobs.h"
 
+#define MAX_MATH_BUFFER_SIZE 1024
 
 extern  double hilbertKernel128[];
 extern  double hilbertKernel64[];
@@ -335,12 +336,13 @@ double dt = 1 / sr;
 double twopi = 2 * pi;
 double mrState = 0., miState = 0.; //modulation product
 
+double spychannel[MAX_MATH_BUFFER_SIZE];
 
 // Let this routine for now hold the local oscillator, take an input stream
 // of samples, and perform the PLL and decoding.  
 // Output is the time averaged detection signal feeding back into the PLL loop.
 // PID loop, detection parameter, and time constants are to be hooked up to knobs.
-double coherent_decode(double x1)
+double coherent_decode(double x1, int ix)
 {
 	static double th1, th2, w1, w2, wb1, wb2, dw1, dw2,dw2_freeze;
 	static double inEnergy = 0.;
@@ -424,11 +426,13 @@ double coherent_decode(double x1)
 	
 	x1 = fir(x1, BP500Kernel64, &BPState);
 
-	
+
 	// create agc here
-	inEnergy = inEnergy*.9999 + x1*x1*.0001;
-	agcgain = 1 / (sqrt(inEnergy) + .025); //max 32dB gain
+	inEnergy = inEnergy*.999 + x1*x1*.001;
+	agcgain = .5 / (sqrt(inEnergy) + .025); //max 32dB gain
 	x1 *= agcgain;
+
+spychannel[ix] = x1;
 
 	meter[0] = inEnergy; // 20 * log10(sqrt(inEnergy) + 1E-15);
 
@@ -532,7 +536,7 @@ double coherent_decode_block(double *dbuffr, int dlen)
 	double r;
 	double retval = 0;
 	for (i = 0; i < dlen; i++){
-		r=coherent_decode(dbuffr[i]);
+		r=coherent_decode(dbuffr[i],i);
 		retval = r>retval ? r : retval;
 	}
 
@@ -620,7 +624,7 @@ int _tmain_syncdecode(int argc, _TCHAR* argv[])
 
 		x1 += noiseSig;
 
-		coherent_decode(x1);
+		coherent_decode(x1,i);
 
 	}
 

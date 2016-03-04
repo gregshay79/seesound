@@ -200,15 +200,16 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 		PatBlt(hdc,x,y,w,h,BLACKNESS);
 
 
-	//Draw bounding box and center line 
+	//Draw bounding box 
 	prevPen= SelectObject(hdc,GetStockObject(WHITE_PEN));
 	MoveToEx(hdc,x,y,NULL);
 	LineTo(hdc,x+w,y);
 	LineTo(hdc,x+w,y+h);
 	LineTo(hdc,x,y+h);
 	LineTo(hdc,x,y);
-	MoveToEx(hdc, x, y + ycenter, NULL);
-	LineTo(hdc, x + w, y + ycenter);
+
+	//MoveToEx(hdc, x, y + ycenter, NULL);
+	//LineTo(hdc, x + w, y + ycenter);
 
 #if 1
 	if (grid) {
@@ -216,6 +217,10 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 		markerPen = CreatePen(PS_DOT /*PS_DOT*/, 1, RGB(128, 128, 150)); // dotted light greyblue pen
 		prevPen=SelectObject(hdc,markerPen);
 		SetBkColor(hdc,RGB(0, 0, 0));
+
+		// draw center line 
+		MoveToEx(hdc, x, y + ycenter, NULL);
+		LineTo(hdc, x + w, y + ycenter);
 
 			//Draw vertical grid lines
 		if (grid > 0) {
