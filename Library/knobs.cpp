@@ -22,7 +22,7 @@ double linmap(int v, int min, int max)
 	return val;
 }
 
-double passthuMap(int v, int min, int max)
+double passthruMap(int v, int min, int max)
 {
 	return (double)v;
 }
@@ -86,6 +86,12 @@ LPWSTR tcFullSRDispMap(double val)
 	double tc;
 	tc = (-1.0 / log(val)) / (samplerate);
 	swprintf_s(vstr, L"%3.1fms", tc * 1000);
+	return vstr;
+}
+
+LPWSTR IntegerDispMap(double val)
+{
+	swprintf_s(vstr, L"%d", (int)val);
 	return vstr;
 }
 

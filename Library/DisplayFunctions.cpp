@@ -280,10 +280,12 @@ extern HWND hWnd;
 void DisplayTriggeredWaveform(HDC hdc, int x, int y, int w, int h, double *data, int dataLen, double ymin, double ymax, int grid, int erase, int color,
 struct button *triggerModeButton, struct knob *threshKnob, struct button *armButton)
 {
-	int i;
+	int i,j,k;
 
 	static int triggerState = 2;
 	static double datamemory[1024];
+	static double prememory[1024];
+
 	static int memPosition = 0;
 
 	// Implement trigger logic
@@ -308,19 +310,32 @@ struct button *triggerModeButton, struct knob *threshKnob, struct button *armBut
 	case(1) :  //Wait for trigger
 		//scan input data for value greater than trigger threshold
 		for (i = 0; i < dataLen; i++){
-			if ((!threshKnob) || (data[i] >= threshKnob->value) || (triggerModeButton->value==0)){
-				memcpy(datamemory, &data[i], sizeof(double)*(dataLen - i));
-				memPosition = dataLen - i;
+			if ((!threshKnob) || (data[i] >= threshKnob->value) || (triggerModeButton->value==0)) {
+				//Here found trigger.
+				// use pretrigger length
+				k = knobs[KNOB_pretrigger].value;
+				if ((j = k-i)>0) {
+					// get 'j' number of samples from end of previous datamemory
+					memcpy(datamemory, &prememory[dataLen-j-1], sizeof(double)*j);
+					k -= j;
+				}
+				else j = 0;
+				
+				memcpy(&datamemory[j], &data[i-k], sizeof(double)*(dataLen - (i-k)));
+				memPosition = j + dataLen - (i-k);
 				triggerState = 2; // next, complete filling memory
 				if (armButton) {
 					armButton->value = 0;
 					RedrawWindow(armButton->hwnd, NULL, NULL, RDW_INVALIDATE);
 					UpdateWindow(armButton->hwnd);
 				}
+				break; // break out of for() loop searching for trigger
 			}
 		}
-			break;
-	case(2) :
+		if (i == dataLen) // no trigger, copy whole data to datamemory
+			memcpy(prememory, data, sizeof(double)*dataLen);
+		break;
+	case(2) : // complete filling of memory
 		i = dataLen - memPosition;
 		if (i > 0) {
 			memcpy(&datamemory[memPosition], data, sizeof(double)*i);
@@ -330,6 +345,8 @@ struct button *triggerModeButton, struct knob *threshKnob, struct button *armBut
 			triggerState = 3;
 			memPosition = 0;
 		}
+
+		memcpy(prememory, data, sizeof(double)*dataLen); // store prememory in case next block triggers
 		break;
 	case(3) :
 		break;

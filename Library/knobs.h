@@ -28,6 +28,7 @@
 #define KNOB_Gamma		7
 #define KNOB_freq		8
 #define KNOB_trig_thresh 9
+#define KNOB_pretrigger	10
 
 #define BUTTON_input_select 0
 #define BUTTON_hold_loop	1
@@ -71,6 +72,8 @@ void initKnobs();
 LPWSTR dBmap(double val);
 LPWSTR tcBlockSRDispMap(double val);
 LPWSTR tcFullSRDispMap(double val);
+LPWSTR IntegerDispMap(double val);
+
 
 
 double linmap(int v, int min, int max);
@@ -80,7 +83,7 @@ double norm40Map(int v, int min, int max);
 double milMap(int v, int min, int max);
 
 
-double passthuMap(int v, int min, int max);
+double passthruMap(int v, int min, int max);
 double tcmapblockSR(int v, int min, int max);
 double tcmapfullSR(int v, int min, int max);
 
