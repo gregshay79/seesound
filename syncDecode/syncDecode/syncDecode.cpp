@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../Library/knobs.h"
+#include "DisplayFunctions.h"
 
 #define MAX_MATH_BUFFER_SIZE 1024
 
@@ -17,6 +18,7 @@ extern  double BP500Kernel64[];
 extern double tracker_freq;
 extern double phaseMeter[];
 extern double meter[];
+extern class minMaxMeter mm;
 
 
 extern double pi;
@@ -432,7 +434,7 @@ double coherent_decode(double x1, int ix)
 	agcgain = .5 / (sqrt(inEnergy) + .025); //max 32dB gain
 	x1 *= agcgain;
 
-spychannel[ix] = x1;
+//spychannel[ix] = x1;
 
 	meter[0] = inEnergy; // 20 * log10(sqrt(inEnergy) + 1E-15);
 
@@ -470,6 +472,10 @@ spychannel[ix] = x1;
 
 	mr = x1*x2 - y1*y2;
 	mi = x1*y2 + x2*y1;
+
+	spychannel[ix] = .7*mr;
+
+	mm.set(4, mr);
 
 	mr = mrState = demodFilterCoeff*mrState + (1 - demodFilterCoeff)*mr;
 	mi = miState = demodFilterCoeff*miState + (1 - demodFilterCoeff)*mi;
@@ -535,6 +541,9 @@ double coherent_decode_block(double *dbuffr, int dlen)
 	int i;
 	double r;
 	double retval = 0;
+
+	mm.reset(4, 1.5);
+
 	for (i = 0; i < dlen; i++){
 		r=coherent_decode(dbuffr[i],i);
 		retval = r>retval ? r : retval;

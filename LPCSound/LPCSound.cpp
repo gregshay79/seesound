@@ -148,7 +148,7 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 	MyRegisterClass(hInst);
 
 	hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-		0 /*CW_USEDEFAULT*/, 0, 1280 /*CW_USEDEFAULT*/, 1064, NULL, NULL, hInst, NULL);
+		0 /*CW_USEDEFAULT*/, 0, 1320 /*CW_USEDEFAULT*/, 1064, NULL, NULL, hInst, NULL);
 
 	if (!hWnd) {
 		return FALSE;
@@ -254,7 +254,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	int i,j,wcolor;
 	double sum;
 	bool notdone;
-	double testfreq=505.,dfreq=-1.;
+	double testfreq=500.,dfreq=-1.;
 	double sigval;
 	HPEN redPen,greenPen;
 	HGDIOBJ  defpen;
@@ -600,6 +600,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 //			 DisplayStripChart(hdc, xpos, ypos, 896, 128, &dval, 1, -20, 20, 5);
 			 DisplayStripChart(hdc, xpos, ypos, 896, 128, &dval, 1, -20, 20,5);
 
+
 			 swprintf_s(strval, L"Ftrack %6.2lf", tracker_freq);
 			 BitBlt(hdc, 600, ypos, 64, 16, 0, 0, 0, WHITENESS);
 			 TextOut(hdc, 600, ypos, strval, lstrlenW(strval));
@@ -615,6 +616,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 DisplayMeterBar(hdc, 2, xpos + 1032 + 20, ypos, 0, 128, &snr, 1, -20, 20, 0.0,1);
 
 			 ypos += 128;
+			 ypos += 8;
+
+			 mm.drawh(hdc, xpos + 964, ypos, 128, 4);
 
 #if 1
 			 //Autocorrelation
@@ -694,10 +698,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			//sum = sum/autocorr[0];
 			swprintf(pbuff, 80, L"(%ld,%ld) autocorrF=% 5.2f, freq= % 5.2f", (long)(tmin*cpu_freq_factor), (long)(tmax*cpu_freq_factor), autocorrFilt[0], indicatorFreq);
 			
-			PatBlt(hdc, 0, ypos - 16, 1280, 16, BLACKNESS);
+			PatBlt(hdc, 0, ypos - 16, 700, 16, BLACKNESS);
 			SetTextColor(hdc, RGB(0, 255, 255));
 //			PatBlt(hdc,800,ypos-16,200,16,BLACKNESS);
-			TextOut(hdc,800,ypos-16,pbuff,wcslen(pbuff));
+			TextOut(hdc,600,ypos-16,pbuff,wcslen(pbuff));
 
 			swprintf(pbuff, 80, L"frq=%5.1f,wpm=%d, cw adap=%ld", decoder.frequency, decoder.cw_receive_speed, decoder.cw_adaptive_receive_threshold);
 			TextOut(hdc, 0, ypos - 16, pbuff, wcslen(pbuff));

@@ -332,8 +332,8 @@ struct button *triggerModeButton, struct knob *threshKnob, struct button *armBut
 				break; // break out of for() loop searching for trigger
 			}
 		}
-		if (i == dataLen) // no trigger, copy whole data to datamemory
-			memcpy(prememory, data, sizeof(double)*dataLen);
+		//if (i == dataLen) // no trigger, copy whole data to datamemory
+		//	memcpy(prememory, data, sizeof(double)*dataLen); 
 		break;
 	case(2) : // complete filling of memory
 		i = dataLen - memPosition;
@@ -345,14 +345,14 @@ struct button *triggerModeButton, struct knob *threshKnob, struct button *armBut
 			triggerState = 3;
 			memPosition = 0;
 		}
-
-		memcpy(prememory, data, sizeof(double)*dataLen); // store prememory in case next block triggers
 		break;
 	case(3) :
 		break;
 	default:
 		break;
 	}
+
+	memcpy(prememory, data, sizeof(double)*dataLen); // store prememory unconditionally
 
 	//Decide if waiting for trigger, or displaying
 	//	if (triggerModeButton && (triggerModeButton->value == 2) && (triggerState == 0))
@@ -390,7 +390,7 @@ void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int 
 
 	valscale = (h-1.0) / (dmax - dmin);
 
-	//Draw bounding box and center line
+	//Draw bounding box 
 	prevPen = SelectObject(hdc, GetStockObject(WHITE_PEN));
 	MoveToEx(hdc, px, py, NULL);
 	LineTo(hdc, px + w, py);
@@ -610,12 +610,15 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 {
 	int i, y;
 	HGDIOBJ prevPen;
+	HPEN markerPen;
 
 	// Erase previous
 	PatBlt(hdc, px, py, HISTMAX, h, BLACKNESS);
 	
 	//Draw bounding box
-	prevPen = SelectObject(hdc, GetStockObject(WHITE_PEN));
+	markerPen = CreatePen(PS_SOLID, 1, RGB(64, 64, 128));
+	prevPen = SelectObject(hdc, markerPen);
+	
 	MoveToEx(hdc, px-1, py, NULL);
 	LineTo(hdc, px + HISTMAX, py);
 	LineTo(hdc, px + HISTMAX, py + h);
@@ -623,7 +626,7 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 	LineTo(hdc, px-1, py);
 
 
-
+	prevPen = SelectObject(hdc, GetStockObject(WHITE_PEN));
 	for (i = 0; i < HISTMAX; i++) {
 		MoveToEx(hdc, px + i, py + h,NULL);
 		y =  (int)(hist[ix][i]*= 0.95);
