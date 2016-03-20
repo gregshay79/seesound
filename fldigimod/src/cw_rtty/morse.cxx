@@ -48,7 +48,7 @@
  * The user can specify the character which substitutes for the prosign
  */
 
-static CW_TABLE cw_table[] = {
+CW_TABLE cw_table[] = {
 	/* Prosigns */
 	{'=',	"<BT>",   "-...-"	}, // 0
 	{'~',	"<AA>",   ".-.-"	}, // 1

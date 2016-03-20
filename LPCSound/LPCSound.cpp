@@ -16,6 +16,7 @@
 
 #include "cw.h"
 #include "configuration.h"
+#include "morse.h"
 
 #define MAX_LOADSTRING 100
 
@@ -36,7 +37,19 @@
 #define XMAX 1366
 #define YMAX 768
 
-//#define PLAYBACK
+
+#define MC_IDLE 0
+#define MC_DIT  1
+#define MC_DAH  2
+#define MC_DITGAP 3
+#define MC_CHARGAP 4
+#define MC_WORDGAP 5
+
+
+//#define PLAYBACK_SOURCE 1
+#define PLAYBACK_SIGNAL 1
+
+extern CW_TABLE cw_table[];
 
 void fft(double *xinr,double *xini,double *xoutr,double *xouti,int n,int forward);
 void genblack(double *win, int n);
@@ -131,8 +144,8 @@ TCHAR bnames[16][16] = { L"in", L"tst", L"run", L"hld", L"fre", L"aut", L"1sh", 
 TCHAR *bnamesp[16] = { bnames[0], bnames[1], bnames[2], bnames[3], bnames[4], bnames[5], bnames[6],
 bnames[7], bnames[8], bnames[9] };
 
-TCHAR insignames[8][8] = { L"inp", L"sine", L"imp", L"pls", L"mod" };
-TCHAR *insignamesp[8] = { insignames[0], insignames[1], insignames[2], insignames[3], insignames[4] };
+TCHAR insignames[8][8] = { L"inp", L"sine", L"imp", L"pls", L"mod",L"mse" };
+TCHAR *insignamesp[8] = { insignames[0], insignames[1], insignames[2], insignames[3], insignames[4], insignames[5] };
 
 
 DWORD WINAPI doWindowsStuff(LPVOID param)
@@ -185,11 +198,14 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 	// Make a Push-on/push-off signal select button
 
 
-	createButton(hWnd, 2, 18, &buttons[BUTTON_input_select], insignamesp, BUTTON_TYPE_MULTI, 5);
+	createButton(hWnd, 2, 18, &buttons[BUTTON_input_select], insignamesp, BUTTON_TYPE_MULTI, 6);
 	// Make fcoeff knob
 	createKnob(hWnd, &knobs[KNOB_FTc], L"F Tc:", 2, 36, tcmapblockSR, tcBlockSRDispMap, 0, 400, 25);
 	createKnob(hWnd, &knobs[KNOB_TTc], L"T Tc:", 2, 64, tcmapblockSR, tcBlockSRDispMap, 0, 400, 25);
 	createKnob(hWnd, &knobs[KNOB_freq], L"F delta:", 2, 80, norm4Map, NULL, 0, 400, 25);
+	createKnob(hWnd, &knobs[KNOB_noiseamp], L"noise:", 2, 80+16, normMap, NULL, 0, 400, 0);
+	createKnob(hWnd, &knobs[KNOB_sigamp], L"sigamp:", 2, 80+32, normMap, NULL, 0, 400, 200);
+
 
 // Controls for triggered waveform display
 	createButton(hWnd, 1160, 16, &buttons[BUTTON_trigger_mode], &bnamesp[4],BUTTON_TYPE_MULTI,3);
@@ -270,6 +286,17 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	double indicatorFreq;
 	int sampcount = 0;
 
+	 int msamplen = 0;
+	 int wordlen = 1;
+	 int mc_state = MC_CHARGAP;
+	 const char *currMchar;
+	int currMcharlen;
+	int ditlen;
+	int z;
+
+	double sigamp, noise;
+
+
 	//	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON | 0x0040 | _MM_MASK_UNDERFLOW | _MM_MASK_DENORM);
 
@@ -286,6 +313,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	block_size = AUDIO_BUFFER_SIZE;
 	// Perform application initialization:
 	hInst = hInstance; // Store instance handle in our global variable
+	ditlen = (samplerate) / 18 /*wpm*/;
 
 	// Spawn off a thread here to pump the message loop:
 	if (!CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)doWindowsStuff, (LPVOID)&nCmdShow, 0, &threadID))
@@ -392,19 +420,21 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			process_samples(wa.whin[wa.ibuf].lpData, wa.whout[wa.ibuf].lpData, wa.whin[wa.ibuf].dwBufferLength);
 
 			memcpy(abuff,wa.whin[wa.ibuf].lpData,wa.whin[wa.ibuf].dwBufferLength);
+
 			/* Queue record ibuf */
 			mmres = waveInAddBuffer(wa.hwi, &wa.whin[wa.ibuf], sizeof(wa.whin[wa.ibuf]));
 			if(mmres) return 2;
-#ifdef PLAYBACK
+
+#ifdef PLAYBACK_INPUT
 			/* Play ibuf */
 			mmres = waveOutWrite(wa.hwo, &wa.whout[wa.ibuf], sizeof(wa.whout[wa.ibuf]));
 #endif
-			if(++wa.ibuf >= WAVEAUDIO_NBUFS)
-				wa.ibuf = 0;
+
+			//if(++wa.ibuf >= WAVEAUDIO_NBUFS)
+			//	wa.ibuf = 0;
 
 			playbacktime += (float)wa.whin[wa.ibuf].dwBufferLength / (float)wa.wfx.nAvgBytesPerSec;
 			//swprintf(pbuff,80,L"\r%c %.1fs", "|-"[wa.ibuf], playbacktime); /* simple ticker */
-
 			//PatBlt(hdc,0,0,128,16,WHITENESS);
 			//TextOut(hdc,0,0,pbuff,wcslen(pbuff));
 
@@ -419,6 +449,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			//LineTo(hdc,1024,512+256);
 
 			sum=0.;
+			sigamp = knobs[KNOB_sigamp].value;
 			//freq += dfreq;
 			//if (freq > 256)
 			//	dfreq = -dfreq;
@@ -434,6 +465,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				theta += (testfreq + knobs[KNOB_freq].value) * 2 * pi / samplerate;
 				if (theta>2 * pi) theta -= 2 * pi;
 
+				noise = knobs[KNOB_noiseamp].value * rand();
+
 				if (++sampcount == (1 << 16)) sampcount = 0;
 
 				switch (buttons[BUTTON_input_select].value) {
@@ -442,20 +475,79 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 					break;
 				case 1:
 					// sine test signal
-					sigval = 0.5*32767.*cos(theta);
+					sigval = noise+sigamp*32767.*cos(theta);
 					break;
 				case 2:// impulse train
-					sigval = 0.5*32767.* ((sampcount & 1023 ) == 0 ? 1.0 : 0);
+					sigval = noise+sigamp*32767.* ((sampcount & 1023 ) == 0 ? 1.0 : 0);
 					break;
 				case 3: // pulse train 50ms wide pulses at 200ms rate
-					sigval = 0.5*32767.* ((sampcount & (1023-255)) == 0 ? 1.0 : 0);
+					sigval = noise + sigamp*32767.* ((sampcount & (1023 - 255)) == 0 ? 1.0 : 0);
 					break;
 				case 4: // modulated pulse train
-					sigval = 0.5*32767.* ((sampcount & (1023-255)) == 0 ? 1.0 : 0);
-					sigval *= cos(theta);
-
+					sigval = 32767.* ((sampcount & (1023 - 255)) == 0 ? 1.0 : 0);
+					sigval = noise + sigamp*sigval*cos(theta);
 					break;
 
+				case 5: // Random morse code at 18wpm
+					msamplen++;
+					sigval = noise;
+					switch (mc_state) { // morse character state
+					case MC_DIT:
+						if (msamplen > ditlen) {
+							msamplen = 0;
+							mc_state = MC_DITGAP;
+						}
+						else
+							sigval += sigamp*32767.*cos(theta);
+						break;
+					case(MC_DAH) :
+						if (msamplen > 3*ditlen) {
+							msamplen = 0;
+							mc_state = MC_DITGAP;
+						}
+						else
+							sigval += sigamp*32767.*cos(theta);
+						break;
+					case(MC_DITGAP) :
+						if (msamplen > ditlen) {
+							msamplen = 0;
+							if (--currMcharlen == 0) { // end of character
+								mc_state = MC_CHARGAP;
+							}
+							else {
+								currMchar++;
+								mc_state = (*currMchar == '.') ? MC_DIT : MC_DAH;
+							}
+							break;
+					case(MC_CHARGAP) :
+						if (msamplen > 2 * ditlen) { // additional gap time above DITGAP
+							msamplen = 0;
+
+							while ( (z = (rand()&63)) > 39);
+							currMchar = cw_table[9 + z].rpr;
+							currMcharlen = strlen(currMchar);
+
+							if (--wordlen == 0) {
+								mc_state = MC_WORDGAP;
+								wordlen = rand() & 7;
+							}
+							else {
+								mc_state = (*currMchar == '.') ? MC_DIT : MC_DAH;
+							}
+						}
+									 break;
+					case(MC_WORDGAP) :
+						if (msamplen > 4 * ditlen) { // additional gap time above CHARGAP
+							msamplen = 0;
+							// Note: currMchar and currMcharlen already set at end of prior CHARGAP
+							mc_state = (*currMchar == '.') ? MC_DIT : MC_DAH;
+						}
+									 break;
+					default:
+						break;
+						} // end of morse case
+					}
+					break;
 				default:
 					break;
 				};
@@ -472,6 +564,23 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				//MoveToEx(hdc,i,256,NULL);
 				//LineTo(hdc,i,256-yval);
 			}
+
+
+#ifdef PLAYBACK_SIGNAL
+			/* Play signal buffer */
+			// rewrite wa.whout. Use index (1 - wa.ibuf) because buffers already flipped, above
+			// rewrite abuff;
+			for (i = 0; i < MATH_BUFFER_SIZE; i++) {
+				abuff[i << 1] = 32768.*dbuffr[i];   // write left channel out of stereo pair
+				abuff[(i << 1) + 1] = abuff[i << 1];   // write right channel out of stereo pair
+			}
+			memcpy( wa.whout[wa.ibuf].lpData, abuff, wa.whin[wa.ibuf].dwBufferLength);
+			mmres = waveOutWrite(wa.hwo, &wa.whout[wa.ibuf], sizeof(wa.whout[wa.ibuf]));
+#endif
+
+
+			if (++wa.ibuf >= WAVEAUDIO_NBUFS)
+				wa.ibuf = 0;
 
 			// call morse decoder
 			decoder.rx_process(dbuffr, MATH_BUFFER_SIZE);
@@ -701,7 +810,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			PatBlt(hdc, 0, ypos - 16, 700, 16, BLACKNESS);
 			SetTextColor(hdc, RGB(0, 255, 255));
 //			PatBlt(hdc,800,ypos-16,200,16,BLACKNESS);
-			TextOut(hdc,600,ypos-16,pbuff,wcslen(pbuff));
+			TextOut(hdc,750,ypos-16,pbuff,wcslen(pbuff));
 
 			swprintf(pbuff, 80, L"frq=%5.1f,wpm=%d, cw adap=%ld", decoder.frequency, decoder.cw_receive_speed, decoder.cw_adaptive_receive_threshold);
 			TextOut(hdc, 0, ypos - 16, pbuff, wcslen(pbuff));

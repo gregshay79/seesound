@@ -29,6 +29,8 @@
 #define KNOB_freq		8
 #define KNOB_trig_thresh 9
 #define KNOB_pretrigger	10
+#define KNOB_noiseamp 11
+#define KNOB_sigamp 12
 
 #define BUTTON_input_select 0
 #define BUTTON_hold_loop	1
