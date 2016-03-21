@@ -21,14 +21,16 @@ class minMaxMeter {
 
 	double mmin[IMAX], mmax[IMAX];
 	double hmax[IMAX];
+//	double Tc[IMAX];
 	HPEN nPen[IMAX];// = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }; // 0, 0, 0, 0, 0, 0, 0, 0 };
 	float hist[IMAX][HISTMAX];
+	float histfilt[IMAX][HISTMAX];
 
 public:
 	minMaxMeter();
 	~minMaxMeter();
 
-void reset(int ix, double maxBound=0.);
+void reset(int ix, double maxBound=0., double Tc=0.0);
 
 void set(int ix, double value);
 

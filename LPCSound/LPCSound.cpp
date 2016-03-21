@@ -95,7 +95,7 @@ _int64 tmax,tmin;
 double cpu_freq_factor;
 double samplerate, block_size;
 
-extern wchar_t dummybuffer[];
+extern wchar_t decodebuffer[];
 
 extern double coherent_decode_block(double *dbuffr, int dlen);
 extern double spychannel[];
@@ -296,6 +296,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	double sigamp, noise;
 
+	int encodepos = 0;
+	wchar_t encodebuffer[128];
+
 
 	//	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON | 0x0040 | _MM_MASK_UNDERFLOW | _MM_MASK_DENORM);
@@ -314,6 +317,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	// Perform application initialization:
 	hInst = hInstance; // Store instance handle in our global variable
 	ditlen = (samplerate) / 18 /*wpm*/;
+	encodebuffer[0] = 0;
 
 	// Spawn off a thread here to pump the message loop:
 	if (!CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)doWindowsStuff, (LPVOID)&nCmdShow, 0, &threadID))
@@ -449,7 +453,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			//LineTo(hdc,1024,512+256);
 
 			sum=0.;
-			sigamp = knobs[KNOB_sigamp].value;
+			sigamp = .25*knobs[KNOB_sigamp].value;
 			//freq += dfreq;
 			//if (freq > 256)
 			//	dfreq = -dfreq;
@@ -526,6 +530,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 							while ( (z = (rand()&63)) > 39);
 							currMchar = cw_table[9 + z].rpr;
 							currMcharlen = strlen(currMchar);
+							encodebuffer[encodepos++] = (wchar_t)cw_table[9 + z].chr;
+							if (encodepos > 80) encodepos = 0;
+							encodebuffer[encodepos] = 0;
+							
 
 							if (--wordlen == 0) {
 								mc_state = MC_WORDGAP;
@@ -727,7 +735,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 ypos += 128;
 			 ypos += 8;
 
-			 mm.drawh(hdc, xpos + 964, ypos, 128, 4);
+			 mm.drawh(hdc, xpos + 964, ypos, 64, 6);
 
 #if 1
 			 //Autocorrelation
@@ -771,7 +779,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 // 1366 x 768 screen
 //			 ypos = YMAX - 200;
-			 ypos += 32;
+			 ypos += 64;
 //			DisplayWaveform(hdc,0,828,1024,128,autocorr,AUTOCORR_SIZE,16384./sum,80); // 10ms grid marks
 			DisplayWaveform(hdc, 0, ypos, 1024, 128, autocorrFilt, AUTOCORR_SIZE, -sum, sum, 0); // 10ms grid marks
 
@@ -807,14 +815,19 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			//sum = sum/autocorr[0];
 			swprintf(pbuff, 80, L"(%ld,%ld) autocorrF=% 5.2f, freq= % 5.2f", (long)(tmin*cpu_freq_factor), (long)(tmax*cpu_freq_factor), autocorrFilt[0], indicatorFreq);
 			
-			PatBlt(hdc, 0, ypos - 16, 700, 16, BLACKNESS);
+			PatBlt(hdc, 0, ypos - 48, 800, 48, BLACKNESS);
+
+			SetTextColor(hdc, RGB(255, 100, 50));
+			TextOut(hdc, 0, ypos - 48, encodebuffer, wcslen(encodebuffer));
+
 			SetTextColor(hdc, RGB(0, 255, 255));
 //			PatBlt(hdc,800,ypos-16,200,16,BLACKNESS);
 			TextOut(hdc,750,ypos-16,pbuff,wcslen(pbuff));
 
 			swprintf(pbuff, 80, L"frq=%5.1f,wpm=%d, cw adap=%ld", decoder.frequency, decoder.cw_receive_speed, decoder.cw_adaptive_receive_threshold);
 			TextOut(hdc, 0, ypos - 16, pbuff, wcslen(pbuff));
-			TextOut(hdc, 256, ypos - 16, dummybuffer, wcslen(dummybuffer));
+
+			TextOut(hdc, 0, ypos - 32, decodebuffer, wcslen(decodebuffer));
 
 			prevObj=SelectObject(hdc,redPen);
 			MoveToEx(hdc,maxi*4,ypos,NULL);

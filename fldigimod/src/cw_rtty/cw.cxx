@@ -134,15 +134,15 @@ const cw::SOM_TABLE cw::som_table[] = {
 
 #define MORSE_DISPLAY_LENGTH 80
 
-wchar_t dummybuffer[128];
+wchar_t decodebuffer[128];
 void put_rx_char(unsigned int data, int style)
 {
 	static int i = 0;
-	dummybuffer[i++] = (wchar_t)data;
-	dummybuffer[i] = 0;
+	decodebuffer[i++] = (wchar_t)data;
+	decodebuffer[i] = 0;
 	if (i > MORSE_DISPLAY_LENGTH) {
 		i = 0;
-		dummybuffer[i] = 0;
+		decodebuffer[i] = 0;
 	}
 }
 

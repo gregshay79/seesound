@@ -431,7 +431,7 @@ double coherent_decode(double x1, int ix)
 
 	// create agc here
 	inEnergy = inEnergy*.999 + x1*x1*.001;
-	agcgain = .5 / (sqrt(inEnergy) + .025); //max 32dB gain
+	agcgain = .5 / (sqrt(inEnergy) + .0025); //max 52dB gain
 	x1 *= agcgain;
 
 //spychannel[ix] = x1;
@@ -475,7 +475,7 @@ double coherent_decode(double x1, int ix)
 
 	spychannel[ix] = .7*mr;
 
-	mm.set(4, mr);
+	mm.set(6, mr);
 
 	mr = mrState = demodFilterCoeff*mrState + (1 - demodFilterCoeff)*mr;
 	mi = miState = demodFilterCoeff*miState + (1 - demodFilterCoeff)*mi;
@@ -541,8 +541,9 @@ double coherent_decode_block(double *dbuffr, int dlen)
 	int i;
 	double r;
 	double retval = 0;
+	double Tc = exp(-1 / (1.*samplerate / block_size));
 
-	mm.reset(4, 1.5);
+	mm.reset(6, 1.5,Tc);  // 300ms time constant
 
 	for (i = 0; i < dlen; i++){
 		r=coherent_decode(dbuffr[i],i);

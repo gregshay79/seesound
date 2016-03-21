@@ -269,8 +269,6 @@ void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,do
 
 	SelectObject(hdc,prevPen);
 	DeleteObject(markerPen);
-
-
 }
 
 extern HWND hWnd;
@@ -590,9 +588,13 @@ minMaxMeter::minMaxMeter()
 	}
 }
 
-void minMaxMeter::reset(int ix,double maxBound)
+void minMaxMeter::reset(int ix,double maxBound,double Tc)
 {
-	for (int i = 0; i <= HISTMAX; i++) hist[ix][i] = 0;
+
+	for (int i = 0; i <= HISTMAX; i++) {
+		histfilt[ix][i] = Tc*histfilt[ix][i] + (1 - Tc)*hist[ix][i];
+		hist[ix][i] = 0;
+	}
 	hmax[ix] = maxBound;
 }
 
@@ -629,12 +631,13 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 	prevPen = SelectObject(hdc, GetStockObject(WHITE_PEN));
 	for (i = 0; i < HISTMAX; i++) {
 		MoveToEx(hdc, px + i, py + h,NULL);
-		y =  (int)(hist[ix][i]*= 0.95);
+		y = (int)(0.5+2*histfilt[ix][i]);//
 		if (y>h) y = h;
 		LineTo(hdc, px + i, py + h - y);
 	}
 
 	SelectObject(hdc, prevPen);
+	DeleteObject(markerPen);	
 }
 
 void minMaxMeter::draw(HDC hdc, int px, int py, int h, double valmax, int ix, COLORREF color)
