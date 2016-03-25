@@ -613,6 +613,8 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 	int i, y;
 	HGDIOBJ prevPen;
 	HPEN markerPen;
+	float sum = 0;
+	float ygain = 1.0;
 
 	// Erase previous
 	PatBlt(hdc, px, py, HISTMAX, h, BLACKNESS);
@@ -629,9 +631,11 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 
 
 	prevPen = SelectObject(hdc, GetStockObject(WHITE_PEN));
+	for (i = 0; i < HISTMAX; i++) sum += histfilt[ix][i];
+	ygain = (h / 10.)*HISTMAX / sum;
 	for (i = 0; i < HISTMAX; i++) {
 		MoveToEx(hdc, px + i, py + h,NULL);
-		y = (int)(0.5+2*histfilt[ix][i]);//
+		y = (int)(0.5+ygain*histfilt[ix][i]);//
 		if (y>h) y = h;
 		LineTo(hdc, px + i, py + h - y);
 	}

@@ -736,6 +736,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 ypos += 8;
 
 			 mm.drawh(hdc, xpos + 964, ypos, 64, 6);
+			 mm.drawh(hdc, xpos + 964, ypos + 64, 64, 7);
+
+			 double Tc2 = exp(-1 / (1.*samplerate / block_size));
+			 mm.reset(7, 3., Tc2);  // 1s time constant
 
 #if 1
 			 //Autocorrelation

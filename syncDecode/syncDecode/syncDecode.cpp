@@ -543,7 +543,7 @@ double coherent_decode_block(double *dbuffr, int dlen)
 	double retval = 0;
 	double Tc = exp(-1 / (1.*samplerate / block_size));
 
-	mm.reset(6, 1.5,Tc);  // 300ms time constant
+	mm.reset(6, 2,Tc);  // 300ms time constant
 
 	for (i = 0; i < dlen; i++){
 		r=coherent_decode(dbuffr[i],i);

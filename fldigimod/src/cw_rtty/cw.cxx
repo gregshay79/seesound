@@ -383,19 +383,33 @@ cw::cw() : modem()
 // SHOULD ONLY BE CALLED FROM THE rx_processing loop
 void cw::reset_rx_filter()
 {
-	if (use_fft_filter != false ||
-		use_matched_filter != false ||
-		cw_speed != 18 ||
-		(bandwidth != 150 && !use_matched_filter)) {
+	//if (use_fft_filter != false ||
+	//	use_matched_filter != false ||
+	//	cw_speed != 18 ||
+	//	(bandwidth != 150 && !use_matched_filter)) {
 
-		use_fft_filter = false ;
-		use_matched_filter = false ;
-		cw_send_speed = cw_speed = 18 ;
+	//	use_fft_filter = false ;
+	//	use_matched_filter = false ;
+	//	cw_send_speed = cw_speed = 18 ;
+
+	//	if (use_matched_filter)
+	//		progdefaults.CWbandwidth =  bandwidth = 2.0 * 18 / 1.2;
+	//	else
+	//		bandwidth = 150 ;
+
+	if (use_fft_filter != progdefaults.CWuse_fft_filter ||
+		use_matched_filter != progdefaults.CWmfilt ||
+		cw_speed != progdefaults.CWspeed ||
+		(bandwidth != progdefaults.CWbandwidth && !use_matched_filter)) {
+
+		use_fft_filter = progdefaults.CWuse_fft_filter;
+		use_matched_filter = progdefaults.CWmfilt;
+		cw_send_speed = cw_speed = progdefaults.CWspeed;
 
 		if (use_matched_filter)
-			progdefaults.CWbandwidth =  bandwidth = 2.0 * 18 / 1.2;
+			progdefaults.CWbandwidth = bandwidth = 2.0 * progdefaults.CWspeed / 1.2;
 		else
-			bandwidth = 150 ;
+			bandwidth = progdefaults.CWbandwidth;
 
 		if (use_fft_filter) { // FFT filter
 			cw_FFT_filter->create_lpf(progdefaults.CWspeed /(1.2 * samplerate));
@@ -434,10 +448,16 @@ void cw::reset_rx_filter()
 		agc_peak = 0;
 		clear_syncscope();
 	}
-	if (lower_threshold != .4  ||
-		upper_threshold != .6 ) {
-		lower_threshold = .4 ;
-		upper_threshold = .6 ;
+	//if (lower_threshold != .4  ||
+	//	upper_threshold != .6 ) {
+	//	lower_threshold = .4 ;
+	//	upper_threshold = .6 ;
+	//	clear_syncscope();
+	//}
+	if (lower_threshold != progdefaults.CWlower ||
+		upper_threshold != progdefaults.CWupper) {
+		lower_threshold = progdefaults.CWlower;
+		upper_threshold = progdefaults.CWupper;
 		clear_syncscope();
 	}
 }
@@ -673,7 +693,7 @@ void cw::decode_stream(double value)
 	pipe[pipeptr] = value;
 	if (++pipeptr == pipesize) pipeptr = 0;
 
-	//mm.set(0, value);
+	mm.set(7, value);
 
 	if (!progStatus.sqlonoff || metric > progStatus.sldrSquelchValue ) {
 // Power detection using hysterisis detector
@@ -689,7 +709,7 @@ void cw::decode_stream(double value)
 		}
 	}
 
-	mm.set(4, (double)key);
+//	mm.set(4, (double)key);
 
 	if (handle_event(CW_QUERY_EVENT, &c) == CW_SUCCESS) {
 		update_syncscope();

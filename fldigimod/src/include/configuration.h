@@ -420,7 +420,7 @@ struct RGBI {
               true)                                                                     \
         ELEM_(bool, CWmfilt, "CWMFILT",                                                 \
               "Matched Filter in use",                                                  \
-              false)                                                                    \
+              true)                                                                    \
         ELEM_(bool, CWuse_fft_filter, "CWUSEFFTFILTER",                                 \
               "Use FFT overlap and add convolution filter",                             \
               false)                                                                    \
