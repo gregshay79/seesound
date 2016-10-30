@@ -298,7 +298,7 @@ HWND createButton(HWND hwnd, int x, int y, struct button *pB, TCHAR **name, int 
 	pB->type = type;
 	pB->value = 0;
 	
-	for (i = 0; i <= nValues; i++) {
+	for (i = 0; i < nValues; i++) {
 		lstrcpy(pB->name[i], name[i]);
 	}
 

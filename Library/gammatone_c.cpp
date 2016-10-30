@@ -251,7 +251,7 @@ void gtFilter(double *x, int nsamples, int fs, double cf, int hrect)
          instp[t] = atan2 ( u0i, u0r );
          /* unwrap it */
          dp = instp[t] - oldphase;
-         if ( abs ( dp ) > M_PI ) {
+         if ( fabs ( dp ) > M_PI ) {
             dps = myMod ( dp + M_PI, 2 * M_PI) - M_PI;
             if ( dps == -M_PI && dp > 0 ) {
                dps = M_PI;
