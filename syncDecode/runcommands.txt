@@ -1,0 +1,300 @@
+step 841, 1.35481e+128, -1.10755
+step 842, 1.35458e+128, -0.902201
+step 843, 1.35432e+128, -0.999957
+step 844, 1.35394e+128, -1.98919
+step 845, 1.35323e+128,  1.70055
+step 846, 1.35338e+128, -1.12666
+step 847, 1.35264e+128,  1.39198
+step 848, 1.35269e+128, -1.16128
+step 849, 1.35198e+128,  1.71874
+step 850, 1.35214e+128,  1.01927
+step 851, 1.35201e+128, -1.21761
+step 852, 1.35146e+128, -1.00165
+step 853, 1.35105e+128, -0.571181
+step 854, 1.35065e+128,  1.00537
+step 855, 1.35056e+128, -0.55394
+step 856, 1.35003e+128, -0.798043
+step 857, 1.34952e+128,  1.78269
+step 858, 1.34963e+128,  1.06418
+step 859, 1.34948e+128, -1.10846
+step 860, 1.34893e+128, -1.12865
+step 861, 1.34846e+128,    0.859
+step 862, 1.34841e+128,  1.43089
+step 863, 1.34841e+128, 0.654558
+step 864, 1.34828e+128, -0.000727567
+step 865, 1.34811e+128, -0.995368
+step 866, 1.34774e+128,  1.90873
+step 867, 1.34811e+128, -1.00304
+step 868, 1.34765e+128, -1.45004
+step 869, 1.34724e+128, -1.13066
+step 870, 1.34683e+128, -1.60889
+step 871, 1.34616e+128,  1.50446
+step 872, 1.34621e+128, -1.27089
+step 873, 1.3454e+128, -0.411358
+step 874, 1.34494e+128, 0.898698
+step 875, 1.34471e+128, -0.0902659
+step 876, 1.34418e+128,  -1.1374
+step 877, 1.34347e+128, -0.999985
+step 878, 1.34278e+128, -1.10363
+step 879, 1.34197e+128, 0.881455
+step 880, 1.34159e+128, -0.208973
+step 881, 1.34083e+128, -1.40564
+step 882, 1.33984e+128, 0.858316
+step 883, 1.33941e+128, -0.998559
+step 884, 1.33838e+128, -0.360242
+step 885, 1.33759e+128, -1.09713
+step 886, 1.33653e+128, 0.210613
+step 887, 1.33577e+128, 0.299844
+step 888, 1.33494e+128, 0.638542
+step 889, 1.33422e+128, 0.707453
+step 890, 1.33354e+128,  1.59565
+step 891, 1.33314e+128, -1.36455
+step 892, 1.33204e+128,  1.00714
+step 893, 1.33169e+128, -0.997892
+step 894, 1.33071e+128, -0.698171
+step 895, 1.32989e+128, 0.0731652
+step 896, 1.32918e+128,  1.09459
+step 897, 1.32867e+128, -0.152507
+step 898, 1.32786e+128, -0.991678
+step 899, 1.32691e+128, 0.757663
+step 900, 1.32641e+128,   0.6742
+step 901, 1.3258e+128, -0.416862
+step 902, 1.32497e+128, 0.851907
+step 903, 1.32453e+128,  1.90373
+step 904, 1.32432e+128, -1.30037
+step 905, 1.32336e+128,  1.44479
+step 906, 1.32327e+128,    1.812
+step 907, 1.32317e+128, 0.396415
+step 908, 1.32282e+128, 0.978777
+step 909, 1.32278e+128, -0.999757
+step 910, 1.32226e+128, 0.532987
+step 911, 1.32222e+128, -0.973209
+step 912, 1.32171e+128, 0.0209233
+step 913, 1.3215e+128,  1.63626
+step 914, 1.32162e+128, 0.303166
+step 915, 1.3214e+128, -1.42721
+step 916, 1.32088e+128,  0.88899
+step 917, 1.32097e+128, 0.340141
+step 918, 1.32081e+128, -1.92375
+step 919, 1.32014e+128, 0.237202
+step 920, 1.32005e+128, -0.804797
+step 921, 1.31953e+128,  1.59647
+step 922, 1.31965e+128, -1.00021
+step 923, 1.31903e+128,  1.51155
+step 924, 1.31919e+128,  -1.9635
+step 925, 1.31837e+128, 0.916638
+step 926, 1.31843e+128, -0.738025
+step 927, 1.31789e+128, 0.131786
+step 928, 1.31765e+128,  1.02169
+step 929, 1.31758e+128, -0.673454
+step 930, 1.31709e+128, -1.00079
+step 931, 1.31659e+128,  1.05253
+step 932, 1.31657e+128, 0.940724
+step 933, 1.31643e+128, -0.173834
+step 934, 1.3161e+128, 0.946332
+step 935, 1.31614e+128,  1.71364
+step 936, 1.31635e+128, 0.575726
+step 937, 1.31636e+128, -1.10113
+step 938, 1.31608e+128, 0.535761
+step 939, 1.31627e+128,  1.78414
+step 940, 1.31669e+128, -1.45385
+step 941, 1.31633e+128, -0.801808
+step 942, 1.31628e+128, -1.00123
+step 943, 1.31606e+128,  0.99681
+step 944, 1.31628e+128, -1.89655
+step 945, 1.31567e+128, 0.751786
+step 946, 1.31583e+128, -0.997832
+step 947, 1.31537e+128,  1.22835
+step 948, 1.31556e+128, 0.539137
+step 949, 1.31548e+128, 0.615389
+step 950, 1.31552e+128,  1.84112
+step 951, 1.31593e+128, -1.66462
+step 952, 1.31549e+128, 0.0916866
+step 953, 1.31565e+128, -1.70561
+step 954, 1.31522e+128, -0.600447
+step 955, 1.31507e+128, 0.559155
+step 956, 1.31508e+128,   1.8967
+step 957, 1.31538e+128,  1.16457
+step 958, 1.31553e+128,  1.96706
+step 959, 1.31606e+128, -0.91775
+step 960, 1.31595e+128, 0.628333
+step 961, 1.3164e+128, -1.00132
+step 962, 1.31635e+128, -0.194113
+step 963, 1.31657e+128,  1.15473
+step 964, 1.31704e+128,  1.37119
+step 965, 1.31756e+128, -1.98232
+step 966, 1.31731e+128, -0.997454
+step 967, 1.31743e+128, -0.949175
+step 968, 1.3174e+128, 0.994088
+step 969, 1.31778e+128,  1.41801
+step 970, 1.31818e+128, -1.31837
+step 971, 1.31797e+128,  1.67751
+step 972, 1.31865e+128, 0.374606
+step 973, 1.31889e+128, -0.558075
+step 974, 1.31902e+128, -1.57261
+step 975, 1.31893e+128, 0.957224
+step 976, 1.31944e+128, 0.717661
+step 977, 1.31975e+128, 0.187099
+step 978, 1.32001e+128,  1.14395
+step 979, 1.32058e+128, -0.287402
+step 980, 1.3208e+128, 0.999037
+step 981, 1.32144e+128, 0.808175
+step 982, 1.32201e+128, -0.936574
+step 983, 1.32222e+128,  1.16544
+step 984, 1.32303e+128,  1.03165
+step 985, 1.32374e+128, -0.884735
+step 986, 1.32405e+128, 0.015032
+step 987, 1.32467e+128, -0.284404
+step 988, 1.32515e+128, -0.645892
+step 989, 1.32554e+128,  -1.4037
+step 990, 1.3257e+128, -1.00103
+step 991, 1.32592e+128, -0.445383
+step 992, 1.32615e+128, -0.264967
+step 993, 1.32635e+128, 0.984216
+step 994, 1.32683e+128,  1.10777
+step 995, 1.32732e+128, -0.0700836
+step 996, 1.32759e+128, -1.00081
+step 997, 1.32771e+128, -0.448103
+step 998, 1.32798e+128, -0.759031
+step 999, 1.32807e+128, 0.893291
+
+D:\proj\HamRadio\syncDecode\Debug>
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 1 1 1 1 1 | less
+'less' is not recognized as an internal or external command,
+operable program or batch file.
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 1 1 1 1 1 | mroe
+'mroe' is not recognized as an internal or external command,
+operable program or batch file.
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode .1 .1 .1 .001 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>vi junk.txt
+'vi' is not recognized as an internal or external command,
+operable program or batch file.
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode .1 .1 .1 .001 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode .1 .1 .1 .001 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode .1 .1 .1 -0.1 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode .1 .01 .1 -0.1 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 1. .01 .1 -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 1. .01 .1 -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 5. .01 .1 -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 5. .01 1. -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 8. .01 1. -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 8. .01 1. -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 8. .01 1. -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 8. .01 1. 0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 8. .01 1. 0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 8. .01 1. 0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 8. .01 1. 0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 1. .01 1. 0.1 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 1. .01 1. -0.1 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 1. .01 1. -0.1 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 1. .01 1. 0.1 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 1. .01 1. 0.1 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .01 1. 0.1 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .01 1. 0.0 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .01 1. 0.0 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .01 1. 0.0 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .01 1. 0.1 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .01 1. -0.1 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .01 1. -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .01 -1. -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .01 -10. -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .01 10. -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .01 30. -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .5 30. -0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .5 30. 0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .05 30. 0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .05 60. 0.5 > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .05 60. 1. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .1 60. 1. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 10. .41 60. 1. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .1 60. 1. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .01 60. 1. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .1 60. 1. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .5 60. 1. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .2 60. 1. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .2 120. 1. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .2 220. 1. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .2 320. 1. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .2 320. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .2 220. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .2 220. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 220. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 180. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 100. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 100. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 50. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 50. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 50. 8. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 0. 8. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 20. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 40. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 40. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 40. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>syncdecode 20. .0 40. 5. > junk.txt
+
+D:\proj\HamRadio\syncDecode\Debug>

@@ -517,6 +517,9 @@ double coherent_decode(double x1, int ix)
 		lasterr = err;
 	}
 
+	if (buttons[BUTTON_hold_loop].value==1) 
+		err = 0.;
+
 	errint += err;
 	errdiff = err - lasterr;
 	lasterr = err;
@@ -525,10 +528,10 @@ double coherent_decode(double x1, int ix)
 
 	dw2 = gamma * control;
 
-	if (buttons[BUTTON_hold_loop].value==1) {
-		dw2 = dw2_freeze;
-	}
-	else dw2_freeze = dw2;
+	//if (buttons[BUTTON_hold_loop].value==1) {
+	//	dw2 = dw2_freeze;
+	//}
+	//else dw2_freeze = dw2;
 
 	//		printf("%lg, %lg, %lg\n", x1, y1, sx);
 //	printf("step %d, %8lg, %8lg, %8lg, %8lg, %8lg, %8lg\n", i, w2, err * 180 / pi, errint * 180 / pi, errdiff * 180 / pi, control, x1);

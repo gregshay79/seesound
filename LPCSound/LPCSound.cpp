@@ -746,7 +746,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 			 //make double buffer; calculate and remove DC
 			 static double acdc = 0.;
-			 double tau = 0.200; // 200ms second time constant
+			 double tau = 1.200; // 200ms second time constant
 			 double acdcCoeff = exp(-1.0 / (tau*samplerate));
 			 sum=0.;
 
