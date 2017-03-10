@@ -603,6 +603,7 @@ void minMaxMeter::set(int ix, double value)
 	int i;
 	if (value < mmin[ix]) mmin[ix] = value;
 	if (value > mmax[ix]) mmax[ix] = value;
+	if (value < 0) value = 0.;
 	i = (int)(.5 + (value / hmax[ix])*HISTMAX);
 	if (i>HISTMAX-1) i = HISTMAX-1;
 	hist[ix][i] += 1.;

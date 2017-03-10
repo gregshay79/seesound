@@ -70,6 +70,7 @@ int terminate_flag = -100;
 
 short abuff[AUDIO_BUFFER_SIZE*2];
 double dbuffr[MATH_BUFFER_SIZE],dbuffi[MATH_BUFFER_SIZE],fbuffr[MATH_BUFFER_SIZE],fbuffi[MATH_BUFFER_SIZE];
+double demodbuff[MATH_BUFFER_SIZE];
 double mag[MATH_BUFFER_SIZE];
 double filterr[MATH_BUFFER_SIZE], filteri[MATH_BUFFER_SIZE];
 double cbuffr[MATH_BUFFER_SIZE],cbuffi[MATH_BUFFER_SIZE];
@@ -97,7 +98,7 @@ double samplerate, block_size;
 
 extern wchar_t decodebuffer[];
 
-extern double coherent_decode_block(double *dbuffr, int dlen);
+extern double coherent_decode_block(double *dbuffr, double *doutput, int dlen);
 extern double spychannel[];
 
 // Forward declarations of functions included in this code module:
@@ -115,7 +116,7 @@ double tracker_freq;
 double phaseMeter[8];
 double meter[8];
 
-cw decoder;
+cw cw_decoder;
 
 int timedown = 0;
 
@@ -392,7 +393,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	mm.reset(3,2000.);
 
-	decoder.init();
+	cw_decoder.init();
 	
 	//SendMessage(hTrackWnd, WM_PAINT, 0, 0);
 	RedrawWindow(hWnd, NULL, NULL, RDW_INVALIDATE);
@@ -579,8 +580,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			// rewrite wa.whout. Use index (1 - wa.ibuf) because buffers already flipped, above
 			// rewrite abuff;
 			for (i = 0; i < MATH_BUFFER_SIZE; i++) {
-				abuff[i << 1] = 32768.*dbuffr[i];   // write left channel out of stereo pair
-				abuff[(i << 1) + 1] = abuff[i << 1];   // write right channel out of stereo pair
+//				abuff[i << 1] = 32768.*dbuffr[i];   // write left channel out of stereo pair
+				abuff[i << 1] = 8192.*spychannel[i];   // write left channel out of stereo pair
+
+				abuff[(i << 1) + 1] = abuff[i << 1];   //copy to right channel of stereo pair
 			}
 			memcpy( wa.whout[wa.ibuf].lpData, abuff, wa.whin[wa.ibuf].dwBufferLength);
 			mmres = waveOutWrite(wa.hwo, &wa.whout[wa.ibuf], sizeof(wa.whout[wa.ibuf]));
@@ -591,8 +594,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				wa.ibuf = 0;
 
 			// call morse decoder
-			decoder.rx_process(dbuffr, MATH_BUFFER_SIZE);
-			//decoder.rx_process(&dbuffr[MATH_BUFFER_SIZE >> 1], MATH_BUFFER_SIZE >> 1);
+			// cw_decoder.rx_process(dbuffr, MATH_BUFFER_SIZE);
+
 
 			 //Apply windowing function
 			 for(i=0;i<FFT_SIZE;i++) {
@@ -604,7 +607,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 }
 
 
-			DisplayTriggeredWaveform(hdc,128+8+512,16,512,256,spychannel /*dbuffr*/ ,FFT_SIZE,-1.0,1.0,0,1,0,
+			DisplayTriggeredWaveform(hdc,128+8+512,16,512,256,demodbuff /*spychannel*/ /*dbuffr*/ ,FFT_SIZE,-1.0,1.0,0,1,0,
 							&buttons[BUTTON_trigger_mode],&knobs[KNOB_trig_thresh],&buttons[BUTTON_trigger_arm]);
 			
 			//DisplayWaveform(hdc, 256, 1, 512, 128, wbuff, FFT_SIZE, 1.);
@@ -713,9 +716,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 // Coherent decode
 			 // Data in dbuffr
 			 // build display at ypos
-			 dval = coherent_decode_block(dbuffr, MATH_BUFFER_SIZE);
+			 dval = coherent_decode_block(dbuffr, demodbuff, MATH_BUFFER_SIZE);
 //			 DisplayStripChart(hdc, xpos, ypos, 896, 128, &dval, 1, -20, 20, 5);
 			 DisplayStripChart(hdc, xpos, ypos, 896, 128, &dval, 1, -20, 20,5);
+
+			 for(i=0;i<MATH_BUFFER_SIZE;i+=DECIMATE_RATIO)
+				cw_decoder.decode_stream_and_update_smpcntr(demodbuff[i],DECIMATE_RATIO);
 
 
 			 swprintf_s(strval, L"Ftrack %6.2lf", tracker_freq);
@@ -828,7 +834,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 //			PatBlt(hdc,800,ypos-16,200,16,BLACKNESS);
 			TextOut(hdc,750,ypos-16,pbuff,wcslen(pbuff));
 
-			swprintf(pbuff, 80, L"frq=%5.1f,wpm=%d, cw adap=%ld", decoder.frequency, decoder.cw_receive_speed, decoder.cw_adaptive_receive_threshold);
+			swprintf(pbuff, 80, L"frq=%5.1f,wpm=%d, cw adap=%ld", cw_decoder.frequency, cw_decoder.cw_receive_speed, cw_decoder.cw_adaptive_receive_threshold);
 			TextOut(hdc, 0, ypos - 16, pbuff, wcslen(pbuff));
 
 			TextOut(hdc, 0, ypos - 32, decodebuffer, wcslen(decodebuffer));

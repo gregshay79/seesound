@@ -628,6 +628,12 @@ int gateCount = 0;
 int agcGate = 0;
 int key = 0;
 
+void cw::decode_stream_and_update_smpcntr(double value, int count_inc)
+{
+	smpl_ctr += count_inc;
+	decode_stream(value);
+
+}
 void cw::decode_stream(double value)
 {
 	const char *c, *somc;

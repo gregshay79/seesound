@@ -247,7 +247,9 @@ public:
 	int		rx_process(const double *buf, int len);
 	void	rx_FFTprocess(const double *buf, int len);
 	void	rx_FIRprocess(const double *buf, int len);
-	void	decode_stream(double);
+	void	decode_stream(double value);
+	void	decode_stream_and_update_smpcntr(double value, int count_inc);
+
 
 	int		tx_process();
 	void	incWPM();

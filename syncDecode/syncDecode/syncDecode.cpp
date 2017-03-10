@@ -337,6 +337,7 @@ double sr = 8000.;
 double dt = 1 / sr;
 double twopi = 2 * pi;
 double mrState = 0., miState = 0.; //modulation product
+double mdState = 0.;
 
 double spychannel[MAX_MATH_BUFFER_SIZE];
 
@@ -344,7 +345,7 @@ double spychannel[MAX_MATH_BUFFER_SIZE];
 // of samples, and perform the PLL and decoding.  
 // Output is the time averaged detection signal feeding back into the PLL loop.
 // PID loop, detection parameter, and time constants are to be hooked up to knobs.
-double coherent_decode(double x1, int ix)
+double coherent_decode(double x1, double *pout, int ix)
 {
 	static double th1, th2, w1, w2, wb1, wb2, dw1, dw2,dw2_freeze;
 	static double inEnergy = 0.;
@@ -358,6 +359,7 @@ double coherent_decode(double x1, int ix)
 	double meanvariance;
 //	double meandeviation;
 	double agcgain;
+	double cwbandwidthCoeff = 0.9875;
 
 	int i, j;
 	static int initflag = 1;
@@ -472,14 +474,20 @@ double coherent_decode(double x1, int ix)
 
 	mr = x1*x2 - y1*y2;
 	mi = x1*y2 + x2*y1;
+	
 
-	spychannel[ix] = .7*mr;
 
 	mm.set(6, mr);
 
-	mr = mrState = demodFilterCoeff*mrState + (1 - demodFilterCoeff)*mr;
-	mi = miState = demodFilterCoeff*miState + (1 - demodFilterCoeff)*mi;
+	// Question: Is LPF on each component of the vector a legit way to bandwidth limit the demodulated signal?
+	mrState = demodFilterCoeff*mrState + (1 - demodFilterCoeff)*mr;
+	miState = demodFilterCoeff*miState + (1 - demodFilterCoeff)*mi;
 
+	mdState = cwbandwidthCoeff*mdState + (1 - cwbandwidthCoeff)*mr;
+	*pout = mdState;
+	mr = mrState;
+	mi = miState;
+	spychannel[ix] = .7*mdState*x2;
 	//		if (i < 128) continue; // skip further processing until the Hilbert filter initializes
 
 
@@ -539,24 +547,24 @@ double coherent_decode(double x1, int ix)
 	return dw2;
 }
 
-double coherent_decode_block(double *dbuffr, int dlen)
+double coherent_decode_block(double *dbuffin, double *dbuffout, int dlen)
 {
 	int i;
 	double r;
 	double retval = 0;
 	double Tc = exp(-1 / (1.*samplerate / block_size));
 
-	mm.reset(6, 2,Tc);  // 300ms time constant
+	mm.reset(6, 2,Tc);  // 1s time constant
 
 	for (i = 0; i < dlen; i++){
-		r=coherent_decode(dbuffr[i],i);
+		r=coherent_decode(dbuffin[i], &dbuffout[i],i);
 		retval = r>retval ? r : retval;
 	}
 
-	return r;
+	return retval;
 }
 
-
+//I think this is the old test routine.  Not used anymore.
 int _tmain_syncdecode(int argc, _TCHAR* argv[])
 {
 	double th1,th2,w1,w2,wb1,wb2,dw1,dw2;
@@ -572,6 +580,7 @@ int _tmain_syncdecode(int argc, _TCHAR* argv[])
 	int i,j;
 	int initflag = 1;
 	double Cpro, Cint, Cdiff,control,gamma;
+	double output;
 
 
 	LARGE_INTEGER t, t1;
@@ -637,7 +646,7 @@ int _tmain_syncdecode(int argc, _TCHAR* argv[])
 
 		x1 += noiseSig;
 
-		coherent_decode(x1,i);
+		coherent_decode(x1,&output,i);
 
 	}
 
