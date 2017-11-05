@@ -1,0 +1,36 @@
+# Build files
+*.o
+*Makefile
+*Makefile.in
+aclocal.m4
+autom4te.cache/
+build-aux/config.guess
+build-aux/config.sub
+build-aux/depcomp
+build-aux/install-sh
+build-aux/missing
+config.log
+config.status
+configure
+doc/*.1
+doc/guide.html
+po/POTFILES
+po/*.gmo
+po/stamp-po
+src/.deps/
+src/config.h
+src/config.h.in*
+src/flarq
+src/fldigi
+src/dl-fldigi
+src/stamp-h1
+src/dl_fldigi/version.cxx
+
+# Runtime generated files
+dl-fldigi-waterfall.png
+
+# Sample capture files
+capture*.wav
+
+# Vim
+*.swp

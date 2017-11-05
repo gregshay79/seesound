@@ -1,0 +1,4 @@
+update:
+    url: "http://ukhas.org.uk/projects:dl-fldigi"
+    text: "There is a new version of dl-fldigi available!"
+latest_release: "DL3.1"

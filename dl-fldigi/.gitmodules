@@ -1,0 +1,3 @@
+[submodule "habitat-cpp-connector"]
+	path = habitat-cpp-connector
+	url = git://github.com/ukhas/habitat-cpp-connector

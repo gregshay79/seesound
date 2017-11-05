@@ -1,3 +1,10 @@
-LPCSound.zip
-*.opensdf
+Debug/
+Release/
+ipch/
+testr/
+*.VC.*
+*/Debug/
+*/Release/
+ipch/
 *.sdf
+*.zip

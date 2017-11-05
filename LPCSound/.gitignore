@@ -1,8 +1,8 @@
-Debug/*
-Release/*
-ipch/*
-testr/*
+Debug/
+Release/
+ipch/
+testr/
 *.VC.*
-*/Debug/*
-Release
-*/ipch/
+*/Debug/
+*/Release/
+ipch/
