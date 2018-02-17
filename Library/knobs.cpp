@@ -39,9 +39,9 @@ double norm4Map(int v, int min, int max)
 	return val;
 }
 
-double norm40Map(int v, int min, int max)
+double norm80Map(int v, int min, int max)
 {
-	double val = 40.*((double)(v)-min) / (max - min);
+	double val = 80.*((double)(v)-min) / (max - min);
 	return val;
 }
 

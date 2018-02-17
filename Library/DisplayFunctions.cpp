@@ -94,7 +94,8 @@ void DisplayMeterBar(HDC hdc, int dBflag, int x, int y, int sx, int sy,
 		BOUND(ival, 1, sx - 1);
 		if (drawFromOrigin) {
 
-		} else
+		}
+		else
 			PatBlt(hdc, x + 1, y - 1, ival, sy - 2, PATCOPY);
 	}
 	else { // vertical
@@ -275,16 +276,31 @@ extern HWND hWnd;
 // If grid is zero, draw no grid.
 // If grid is nonzero and positive, draw an x/y grid at the given increment of input units (before display gain).
 // if grid is negative, draw only a y grid 
+int tcstate = 0;
 void DisplayTriggeredWaveform(HDC hdc, int x, int y, int w, int h, double *data, int dataLen, double ymin, double ymax, int grid, int erase, int color,
-struct button *triggerModeButton, struct knob *threshKnob, struct button *armButton)
+struct button *triggerModeButton, struct knob *threshKnob, struct button *armButton, int timecompressratio)
 {
 	int i,j,k;
 
 	static int triggerState = 2;
+	static double tcmem[1024];
+//	static int tcstate=0;
 	static double datamemory[1024];
 	static double prememory[1024];
 
 	static int memPosition = 0;
+
+	// implement time compression logic
+	if (timecompressratio > 1) {
+		int filloffset = (dataLen / timecompressratio)*tcstate;
+		for (int i = 0; i < dataLen / timecompressratio; i++) {
+			tcmem[filloffset + i] = data[i*timecompressratio];
+		}
+		if (++tcstate < timecompressratio)
+			return;
+	}
+	tcstate = 0;// reset for next set of input blocks,
+	data = tcmem; // go draw this one
 
 	// Implement trigger logic
 	// triggerMode 0 : no trigger, free run
@@ -603,7 +619,6 @@ void minMaxMeter::set(int ix, double value)
 	int i;
 	if (value < mmin[ix]) mmin[ix] = value;
 	if (value > mmax[ix]) mmax[ix] = value;
-	if (value < 0) value = 0.;
 	i = (int)(.5 + (value / hmax[ix])*HISTMAX);
 	if (i>HISTMAX-1) i = HISTMAX-1;
 	hist[ix][i] += 1.;
@@ -640,6 +655,44 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 		if (y>h) y = h;
 		LineTo(hdc, px + i, py + h - y);
 	}
+
+
+	// Compute and print median value
+	float isum = 0.;
+	float thresh2 = sum / 2.;
+	float thresh4 = sum / 4.;
+	float thresh34 = thresh4 * 3;
+	float threshtot = sum*.95;
+
+	float median, lowmed, highmed;
+	int im=0, il=0, ih=0, itot=0;
+
+	TCHAR dispStr[16];
+
+	for (i = 0; i < HISTMAX; i++) {
+		isum += histfilt[ix][i];
+		if (isum < thresh4)
+			il = i;
+		if (isum < thresh2)
+			im = i;
+		if (isum < thresh34)
+			ih = i;
+		if (isum < threshtot)
+			itot = i;
+	}
+	
+	median = ((float) im / HISTMAX)*hmax[ix];
+
+	BitBlt(hdc, px+ HISTMAX + 4, py, 64, 64, 0, 0, 0, BLACKNESS);
+
+	swprintf_s(dispStr, L"%8.2g", (((float)i)/HISTMAX)*hmax[ix]);
+	TextOut(hdc, px + HISTMAX + 5, py + 1, dispStr, lstrlenW(dispStr));
+
+	swprintf_s(dispStr, L"%5.2g", (ih - il) / (float)itot);
+	TextOut(hdc, px + HISTMAX + 5, py + 1 + 16, dispStr, lstrlenW(dispStr));
+
+
+
 
 	SelectObject(hdc, prevPen);
 	DeleteObject(markerPen);	

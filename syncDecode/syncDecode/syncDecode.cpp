@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include "../Library/knobs.h"
 #include "DisplayFunctions.h"
+#include "cw.h"
+
 
 #define MAX_MATH_BUFFER_SIZE 1024
 
@@ -151,6 +153,9 @@ struct firstate {
 struct firstate HilbertFilterState;
 struct firstate lowpassState;
 struct firstate BPState;
+C_FIR_filter	*SyncDec_FIR_filter; // linear phase finite impulse response filter
+C_FIR_filter	*BP_FIR_filter; // linear phase finite impulse response filter
+
 
 void fir_init(struct firstate *state, int n)
 {
@@ -376,7 +381,7 @@ double coherent_decode(double x1, double *pout, int ix)
 	
 	if (initflag) {
 //	initflag = 0;  // this is done later
-	sr = 8000.;
+	sr = (double)samplerate;
 	dt = 1 / sr;
 	th1 = 0.;
 	th2 = pi / 4;
@@ -403,6 +408,11 @@ double coherent_decode(double x1, double *pout, int ix)
 	fir_init(&lowpassState, 64);
 	fir_init(&BPState, 64);
 
+//	SyncDec_FIR_filter = new C_FIR_filter();
+//	SyncDec_FIR_filter->init_lowpass(CW_FIRLEN, 1 /*DECIMATE_RATIO*/, 10 / (1.2 * samplerate));
+
+	BP_FIR_filter = new C_FIR_filter();
+	BP_FIR_filter->init_bandpass(CW_FIRLEN, 1 /*DECIMATE_RATIO*/, 495./samplerate, 505./samplerate);
 }
 
 
@@ -428,11 +438,13 @@ double coherent_decode(double x1, double *pout, int ix)
 
 //	x1 += noiseSig;
 	
-	x1 = fir(x1, BP500Kernel64, &BPState);
+//	x1 = fir(x1, BP500Kernel64, &BPState);
 
+	BP_FIR_filter->Irun(x1, x1);
 
 	// create agc here
-	inEnergy = inEnergy*.999 + x1*x1*.001;
+	// compute rms energy
+	inEnergy = inEnergy*.9998 + x1*x1*.0002;
 	agcgain = .5 / (sqrt(inEnergy) + .0025); //max 52dB gain
 	x1 *= agcgain;
 
@@ -470,14 +482,23 @@ double coherent_decode(double x1, double *pout, int ix)
 
 	//local oscillator
 	x2 = cos(th2);
-	y2 = -sin(th2); // complex conjugate
+	y2 = -sin(th2); // negative sign to make this the complex conjugate
 
 	mr = x1*x2 - y1*y2;
 	mi = x1*y2 + x2*y1;
 	
+	spychannel[ix] = .7*mr;
 
+//	mm.set(6, fabs(mr));  // meter 6 is the raw value right off of the demodulator
 
-	mm.set(6, mr);
+//	cmplx z;
+//	z = cmplx(mr, mi);
+//	SyncDec_FIR_filter->run(z, z);
+//	mr = z.real();
+//	mi = z.imag();
+
+	// First order low pass filters on the demodulated signal.
+	// This should probably be a more sophisticated filter?
 
 	// Question: Is LPF on each component of the vector a legit way to bandwidth limit the demodulated signal?
 	mrState = demodFilterCoeff*mrState + (1 - demodFilterCoeff)*mr;
@@ -489,6 +510,9 @@ double coherent_decode(double x1, double *pout, int ix)
 	mi = miState;
 	spychannel[ix] = .7*mdState*x2;
 	//		if (i < 128) continue; // skip further processing until the Hilbert filter initializes
+
+	//Input data to the histogram before the 
+	mm.set(6, fabs(mr));  // meter 6 is the filtered value off of the demodulator
 
 
 	//if (i == 200) {
@@ -525,8 +549,9 @@ double coherent_decode(double x1, double *pout, int ix)
 		lasterr = err;
 	}
 
-	if (buttons[BUTTON_hold_loop].value==1) 
-		err = 0.;
+	if (buttons[BUTTON_hold_loop].value == 1) {
+		err = 0;
+	}
 
 	errint += err;
 	errdiff = err - lasterr;
@@ -537,7 +562,9 @@ double coherent_decode(double x1, double *pout, int ix)
 	dw2 = gamma * control;
 
 	//if (buttons[BUTTON_hold_loop].value==1) {
-	//	dw2 = dw2_freeze;
+	//	//dw2 = dw2_freeze;
+	//	dw2 = 0;// dw2_freeze;
+
 	//}
 	//else dw2_freeze = dw2;
 

@@ -213,15 +213,15 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 	createButton(hWnd, 1160, 48, &buttons[BUTTON_trigger_arm], &bnamesp[7], BUTTON_TYPE_MULTI,2);
 	createKnob(hWnd, &knobs[KNOB_trig_thresh], L"Thresh", 1160, 80, normMap, NULL, 0, 400, 200);
 	createKnob(hWnd, &knobs[KNOB_pretrigger], L"Pretrig", 1160, 112, passthruMap, IntegerDispMap, 0, 400, 100);
-
+	createKnob(hWnd, &knobs[KNOB_Tscale], L"Tscale", 1160, 144, passthruMap, IntegerDispMap, 1, 16, 4);
 
 	// Make knobs for coherent decoder
 	ypos = 264;
-	createKnob(hWnd, &knobs[KNOB_Cpro],  L"Cpro :", 2, ypos += 24, norm40Map, NULL, 0, 400, 400);
+	createKnob(hWnd, &knobs[KNOB_Cpro],  L"Cpro :", 2, ypos += 24, norm80Map, NULL, 0, 800, 300);
 	createKnob(hWnd, &knobs[KNOB_Cint],  L"Cint :", 2, ypos += 24, milMap, NULL, 0, 400, 200);
 	createKnob(hWnd, &knobs[KNOB_Cdiff], L"Cdiff:", 2, ypos += 24, norm4Map, NULL, 0, 400, 0);
-	createKnob(hWnd, &knobs[KNOB_Gamma], L"gamma:", 2, ypos += 24, normMap, NULL, 0, 400, 50);
-	createKnob(hWnd, &knobs[KNOB_DemodTc], L"dmTc :", 2, ypos += 24, tcmapfullSR, tcFullSRDispMap, 0, 400, 35);
+	createKnob(hWnd, &knobs[KNOB_Gamma], L"gamma:", 2, ypos += 24, normMap, NULL, 0, 400, 10);
+	createKnob(hWnd, &knobs[KNOB_DemodTc], L"dmTc :", 2, ypos += 24, tcmapfullSR, tcFullSRDispMap, 0, 400, 150);
 	
 //	createKnob(hWnd, &knobs[KNOB_freeze], L"Fz :", 2, ypos += 24, normMap, NULL, 0,100, 100);
 	createButton(hWnd, 2, ypos += 24, &buttons[BUTTON_hold_loop], &bnamesp[2], BUTTON_TYPE_MOMENTARY, 2);
@@ -424,11 +424,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 			process_samples(wa.whin[wa.ibuf].lpData, wa.whout[wa.ibuf].lpData, wa.whin[wa.ibuf].dwBufferLength);
 
-			memcpy(abuff,wa.whin[wa.ibuf].lpData,wa.whin[wa.ibuf].dwBufferLength);
+			memcpy(abuff, wa.whin[wa.ibuf].lpData, wa.whin[wa.ibuf].dwBufferLength);
 
 			/* Queue record ibuf */
 			mmres = waveInAddBuffer(wa.hwi, &wa.whin[wa.ibuf], sizeof(wa.whin[wa.ibuf]));
-			if(mmres) return 2;
+			if (mmres) return 2;
 
 #ifdef PLAYBACK_INPUT
 			/* Play ibuf */
@@ -453,7 +453,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			//MoveToEx(hdc,0,512+256,NULL);
 			//LineTo(hdc,1024,512+256);
 
-			sum=0.;
+			sum = 0.;
 			sigamp = .25*knobs[KNOB_sigamp].value;
 			//freq += dfreq;
 			//if (freq > 256)
@@ -461,7 +461,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			//if (freq < 8)
 			//	dfreq = -dfreq;
 
-			for(i=0;i<MATH_BUFFER_SIZE;i++) {
+			for(i=0; i<MATH_BUFFER_SIZE; i++) {
 				//abuff[i<<1]= (short)(32767.*cos(i*2.*pi/64.));  // integer test signal
 				
 				//yval = abuff[i<<1]>>7;
@@ -606,9 +606,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 //				cbuffr[i] *= dwin[j];
 			 }
 
-
+			//void DisplayTriggeredWaveform(HDC hdc, int x, int y, int w, int h, double *data, int dataLen, double ymin, double ymax, int grid, int erase, int color,
+			//struct button *triggerModeButton, struct knob *threshKnob, struct button *armButton, int timecompressfactor )
 			DisplayTriggeredWaveform(hdc,128+8+512,16,512,256,demodbuff /*spychannel*/ /*dbuffr*/ ,FFT_SIZE,-1.0,1.0,0,1,0,
-							&buttons[BUTTON_trigger_mode],&knobs[KNOB_trig_thresh],&buttons[BUTTON_trigger_arm]);
+				&buttons[BUTTON_trigger_mode], &knobs[KNOB_trig_thresh], &buttons[BUTTON_trigger_arm], knobs[KNOB_Tscale].value);
 			
 			//DisplayWaveform(hdc, 256, 1, 512, 128, wbuff, FFT_SIZE, 1.);
 
@@ -692,6 +693,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 //}
 
 			 //DisplayWaveform(hdc,10,128+256+16,512,128,scrbuff,FFT_SIZE>>1,100.);
+#else
+			ypos += 256 + 8;
+			xpos = 128;
 #endif
 
 
@@ -741,18 +745,23 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			 ypos += 128;
 			 ypos += 8;
 
+			// draw histogram of meter #6, in phase component of synchronous decoder.  
 			 mm.drawh(hdc, xpos + 964, ypos, 64, 6);
+
+			// draw histogram of meter #7, content of asynchronous demodulator inside morse decoder, which is after the narrow demodulator filter
 			 mm.drawh(hdc, xpos + 964, ypos + 64, 64, 7);
 
+			// Leak down histogram 7
+			// Set max bin of histogram 7 to value of 3.
 			 double Tc2 = exp(-1 / (1.*samplerate / block_size));
 			 mm.reset(7, 3., Tc2);  // 1s time constant
 
-#if 1
+#if 0
 			 //Autocorrelation
 
 			 //make double buffer; calculate and remove DC
 			 static double acdc = 0.;
-			 double tau = 1.200; // 200ms second time constant
+			double tau = 0.200; // 200ms second time constant
 			 double acdcCoeff = exp(-1.0 / (tau*samplerate));
 			 sum=0.;
 
@@ -821,10 +830,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			}
 
 			indicatorFreq = SAMPLE_FREQ/maxi;
-#endif
+
 			//sum = sum/autocorr[0];
 			swprintf(pbuff, 80, L"(%ld,%ld) autocorrF=% 5.2f, freq= % 5.2f", (long)(tmin*cpu_freq_factor), (long)(tmax*cpu_freq_factor), autocorrFilt[0], indicatorFreq);
-			
+#else
+			ypos += 64;
+#endif
 			PatBlt(hdc, 0, ypos - 48, 800, 48, BLACKNESS);
 
 			SetTextColor(hdc, RGB(255, 100, 50));
@@ -832,9 +843,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 			SetTextColor(hdc, RGB(0, 255, 255));
 //			PatBlt(hdc,800,ypos-16,200,16,BLACKNESS);
-			TextOut(hdc,750,ypos-16,pbuff,wcslen(pbuff));
+//			TextOut(hdc,750,ypos-16,pbuff,wcslen(pbuff));
 
-			swprintf(pbuff, 80, L"frq=%5.1f,wpm=%d, cw adap=%ld", cw_decoder.frequency, cw_decoder.cw_receive_speed, cw_decoder.cw_adaptive_receive_threshold);
+			swprintf(pbuff, 80, L"gen SNR=%5.1f, frq=%5.1f,wpm=%d, cw adap=%ld",
+			20 * log10(knobs[KNOB_sigamp].value/(knobs[KNOB_noiseamp].value+1E-12)),
+			cw_decoder.frequency, cw_decoder.cw_receive_speed, cw_decoder.cw_adaptive_receive_threshold
+			);
 			TextOut(hdc, 0, ypos - 16, pbuff, wcslen(pbuff));
 
 			TextOut(hdc, 0, ypos - 32, decodebuffer, wcslen(decodebuffer));

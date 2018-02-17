@@ -9,7 +9,7 @@ void DisplayStripChart(HDC hdc, int px, int py, int w, int h, double *data, int 
 
 //void DisplayWaveform(HDC hdc,int x,int y,int w,int h,double *data,int dataLen,double ymin, double ymax, int grid = 0,int erase=1,int color=0);
 void DisplayTriggeredWaveform(HDC hdc, int x, int y, int w, int h, double *data, int dataLen, double ymin, double ymax, int grid=0, int erase=1, int color=0,
-		struct button *triggerModeButton=NULL, struct knob *threshKnob=NULL, struct button *armButton=NULL);
+		struct button *triggerModeButton=NULL, struct knob *threshKnob=NULL, struct button *armButton=NULL, int timecompressratio=1);
 
 void DisplayWaveform(HDC hdc, int x, int y, int w, int h, double *data, int dataLen, double ymin, double ymax, int grid=0, int erase=1, int color=0);
 

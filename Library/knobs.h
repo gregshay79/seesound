@@ -13,7 +13,7 @@
 #define BUTTONSIZEY 16
 
 #define MAX_BUTTON 16
-#define MAXBUTTONVALUES 16
+#define MAXBUTTONVALUES 8
 
 #define BUTTON_TYPE_MOMENTARY 0
 #define BUTTON_TYPE_MULTI 1
@@ -31,6 +31,7 @@
 #define KNOB_pretrigger	10
 #define KNOB_noiseamp 11
 #define KNOB_sigamp 12
+#define KNOB_Tscale 13
 
 #define BUTTON_input_select 0
 #define BUTTON_hold_loop	1
@@ -81,7 +82,7 @@ LPWSTR IntegerDispMap(double val);
 double linmap(int v, int min, int max);
 double normMap(int v, int min, int max);
 double norm4Map(int v, int min, int max);
-double norm40Map(int v, int min, int max);
+double norm80Map(int v, int min, int max);
 double milMap(int v, int min, int max);
 
 
