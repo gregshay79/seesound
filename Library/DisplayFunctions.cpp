@@ -282,6 +282,7 @@ struct button *triggerModeButton, struct knob *threshKnob, struct button *armBut
 {
 	int i,j,k;
 
+	static int aboveBelow = 0;
 	static int triggerState = 2;
 	static double tcmem[1024];
 //	static int tcstate=0;
@@ -323,27 +324,33 @@ struct button *triggerModeButton, struct knob *threshKnob, struct button *armBut
 		break;
 	case(1) :  //Wait for trigger
 		//scan input data for value greater than trigger threshold
-		for (i = 0; i < dataLen; i++){
-			if ((!threshKnob) || (data[i] >= threshKnob->value) || (triggerModeButton->value==0)) {
-				//Here found trigger.
-				// use pretrigger length
-				k = knobs[KNOB_pretrigger].value;
-				if ((j = k-i)>0) {
-					// get 'j' number of samples from end of previous datamemory
-					memcpy(datamemory, &prememory[dataLen-j-1], sizeof(double)*j);
-					k -= j;
-				}
-				else j = 0;
-				
-				memcpy(&datamemory[j], &data[i-k], sizeof(double)*(dataLen - (i-k)));
-				memPosition = j + dataLen - (i-k);
-				triggerState = 2; // next, complete filling memory
-				if (armButton) {
-					armButton->value = 0;
-					RedrawWindow(armButton->hwnd, NULL, NULL, RDW_INVALIDATE);
-					UpdateWindow(armButton->hwnd);
-				}
-				break; // break out of for() loop searching for trigger
+		for (i = 0; i < dataLen; i++) {
+			if ((!threshKnob) || (aboveBelow==0)&&(data[i] > threshKnob->value) || (triggerModeButton->value == 0)) {
+				if (data[i] > threshKnob->value)
+					aboveBelow = 1;
+					//Here found trigger.
+					// use pretrigger length
+					k = knobs[KNOB_pretrigger].value;
+					if ((j = k - i) > 0) {
+						// get 'j' number of samples from end of previous datamemory
+						memcpy(datamemory, &prememory[dataLen - j - 1], sizeof(double)*j);
+						k -= j;
+					}
+					else j = 0;
+
+					memcpy(&datamemory[j], &data[i - k], sizeof(double)*(dataLen - (i - k)));
+					memPosition = j + dataLen - (i - k);
+					triggerState = 2; // next, complete filling memory
+					if (armButton) {
+						armButton->value = 0;
+						RedrawWindow(armButton->hwnd, NULL, NULL, RDW_INVALIDATE);
+						UpdateWindow(armButton->hwnd);
+					}
+					break; // break out of for() loop searching for trigger
+			}
+			else if (aboveBelow == 1) {
+				if (data[i] < threshKnob->value)
+					aboveBelow = 0;
 			}
 		}
 		//if (i == dataLen) // no trigger, copy whole data to datamemory
@@ -619,6 +626,7 @@ void minMaxMeter::set(int ix, double value)
 	int i;
 	if (value < mmin[ix]) mmin[ix] = value;
 	if (value > mmax[ix]) mmax[ix] = value;
+	if (value < 0) return; // the histogram seems to only be written for positive values.
 	i = (int)(.5 + (value / hmax[ix])*HISTMAX);
 	if (i>HISTMAX-1) i = HISTMAX-1;
 	hist[ix][i] += 1.;
