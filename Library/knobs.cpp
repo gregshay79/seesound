@@ -22,11 +22,17 @@ double linmap(int v, int min, int max)
 	return val;
 }
 
+double scaleMap(int v, int min, int max)
+{
+	return (double)v / 16.;
+}
+
 double passthruMap(int v, int min, int max)
 {
 	return (double)v;
 }
 
+//Normalize the value to 0 to 1 for min to max
 double normMap(int v, int min, int max)
 {
 	double val = ((double)(v)-min) / (max - min);

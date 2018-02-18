@@ -85,7 +85,7 @@ double norm4Map(int v, int min, int max);
 double norm80Map(int v, int min, int max);
 double milMap(int v, int min, int max);
 
-
+double scaleMap(int v, int min, int max);
 double passthruMap(int v, int min, int max);
 double tcmapblockSR(int v, int min, int max);
 double tcmapfullSR(int v, int min, int max);

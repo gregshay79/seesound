@@ -636,7 +636,7 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 {
 	int i, y;
 	HGDIOBJ prevPen;
-	HPEN markerPen;
+	HPEN markerPen,yellowPen;
 	float sum = 0;
 	float ygain = 1.0;
 
@@ -645,6 +645,8 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 	
 	//Draw bounding box
 	markerPen = CreatePen(PS_SOLID, 1, RGB(64, 64, 128));
+	yellowPen = CreatePen(PS_SOLID, 1, RGB(200, 200, 0)); // yellow pen
+
 	prevPen = SelectObject(hdc, markerPen);
 	
 	MoveToEx(hdc, px-1, py, NULL);
@@ -655,7 +657,9 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 
 
 	prevPen = SelectObject(hdc, GetStockObject(WHITE_PEN));
-	for (i = 0; i < HISTMAX; i++) sum += histfilt[ix][i];
+	for (i = 0; i < HISTMAX; i++) 
+		sum += histfilt[ix][i];
+
 	ygain = (h / 10.)*HISTMAX / sum;
 	for (i = 0; i < HISTMAX; i++) {
 		MoveToEx(hdc, px + i, py + h,NULL);
@@ -699,8 +703,10 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 	swprintf_s(dispStr, L"%5.2g", (ih - il) / (float)itot);
 	TextOut(hdc, px + HISTMAX + 5, py + 1 + 16, dispStr, lstrlenW(dispStr));
 
-
-
+	//Draw vertical yellow line at median
+	prevPen = SelectObject(hdc, yellowPen);
+	MoveToEx(hdc, px + im, py, NULL);
+	LineTo(hdc, px + im, py + h);
 
 	SelectObject(hdc, prevPen);
 	DeleteObject(markerPen);	
