@@ -9,6 +9,8 @@
 #include <float.h>
 #include <WinBase.h>
 #include <CommCtrl.h>
+#include <xmmintrin.h>
+#include <pmmintrin.h>
 
 #include "../library/wwaveloop.h"
 #include "../library/DisplayFunctions.h"
@@ -273,7 +275,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	bool notdone;
 	double testfreq=500.,dfreq=-1.;
 	double sigval;
-	HPEN redPen,greenPen;
+	HPEN redPen,greenPen,yellowPen;
 	HGDIOBJ  defpen;
 	HGDIOBJ prevObj;
 	int mcount = 10;
@@ -387,6 +389,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	redPen = CreatePen(PS_SOLID,1,RGB(255,50,50)); // red pen
 	greenPen = CreatePen(PS_SOLID,1,RGB(0,255,128)); // green pen
+	yellowPen = CreatePen(PS_SOLID, 1, RGB(200, 200,0)); // green pen
+
 	hdc = GetDC(hWnd);
 	defpen = SelectObject(hdc,GetStockObject(WHITE_PEN));
 	PatBlt(hdc,0,0,1200,1024,BLACKNESS);
@@ -652,9 +656,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 //			DisplayWaveform(hdc, xpos, ypos, FFT_SIZE, 128, mag, FFT_SIZE >> 1, -1, 1.0, .1);
 			DisplayWaveform(hdc, xpos, ypos, FFT_SIZE, 128, scrbuffb, FFT_SIZE >> 1, -100, 0., 0, 0, RGB(255, 0, 0));
 
-			// Draw markers at 1000Hz +/- 10hz
+			// Draw markers at 500Hz +/- 10hz
 			int x;
-			prevObj = SelectObject(hdc, redPen);
+			prevObj = SelectObject(hdc, yellowPen);
 			MoveToEx(hdc, x = (int)(xpos + FFT_SIZE*(500 - 10) / (SAMPLE_FREQ / 2)), ypos, NULL);
 			LineTo(hdc, x, ypos+128);
 
@@ -666,6 +670,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 #if 1
 //			int ypos = 128+16;
+			//Spectum waterfall
 			//DisplayHScrolling(HDC hdc, int px, int py, int w,	int h,	double *data,	int dlen)
 			DisplayVScrolling(hdc, xpos, ypos, FFT_SIZE, 128, scrbuff, FFT_SIZE >> 1,-80,0);
 			ypos += 128;
