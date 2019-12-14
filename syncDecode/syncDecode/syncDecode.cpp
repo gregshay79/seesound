@@ -365,6 +365,7 @@ double coherent_decode(double x1, double *pout, int ix)
 //	double meandeviation;
 	double agcgain;
 	double cwbandwidthCoeff = 0.9875;
+	float cwBwHz = 30;
 
 	int i, j;
 	static int initflag = 1;
@@ -412,7 +413,7 @@ double coherent_decode(double x1, double *pout, int ix)
 //	SyncDec_FIR_filter->init_lowpass(CW_FIRLEN, 1 /*DECIMATE_RATIO*/, 10 / (1.2 * samplerate));
 
 	BP_FIR_filter = new C_FIR_filter();
-	BP_FIR_filter->init_bandpass(CW_FIRLEN, 1 /*DECIMATE_RATIO*/, 495./samplerate, 505./samplerate);
+	BP_FIR_filter->init_bandpass(CW_FIRLEN, 1 /*DECIMATE_RATIO*/, (500.-cwBwHz)/samplerate, (500.+cwBwHz)/samplerate);
 }
 
 

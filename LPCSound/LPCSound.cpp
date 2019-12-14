@@ -215,7 +215,7 @@ DWORD WINAPI doWindowsStuff(LPVOID param)
 	createButton(hWnd, 1160, 48, &buttons[BUTTON_trigger_arm], &bnamesp[7], BUTTON_TYPE_MULTI,2);
 	createKnob(hWnd, &knobs[KNOB_trig_thresh], L"Thresh", 1160, 80, normMap, NULL, 0, 400, 200);
 	createKnob(hWnd, &knobs[KNOB_pretrigger], L"Pretrig", 1160, 112, passthruMap, IntegerDispMap, 0, 400, 100);
-	createKnob(hWnd, &knobs[KNOB_Tscale], L"Tscale", 1160, 144, scaleMap, IntegerDispMap, 1, 256, 4);
+	createKnob(hWnd, &knobs[KNOB_Tscale], L"Tscale", 1160, 144, scaleMap, IntegerDispMap, 1, 256, 200);
 
 	// Make knobs for coherent decoder
 	ypos = 264;
