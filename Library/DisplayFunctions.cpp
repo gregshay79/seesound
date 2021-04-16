@@ -697,10 +697,10 @@ void minMaxMeter::drawh(HDC hdc, int px, int py, int h, int ix)
 
 	BitBlt(hdc, px+ HISTMAX + 4, py, 64, 64, 0, 0, 0, BLACKNESS);
 
-	swprintf_s(dispStr, L"%8.2g", (((float)im)/HISTMAX)*hmax[ix]);
+	swprintf_s(dispStr, L"%5.2g", (((float)im)/HISTMAX)*hmax[ix]);
 	TextOut(hdc, px + HISTMAX + 5, py + 1, dispStr, lstrlenW(dispStr));
 
-	swprintf_s(dispStr, L"%5.2g", (ih - il) / (float)itot);
+	swprintf_s(dispStr, L"%5.2g", (((float)ih - il) / HISTMAX)*hmax[ix]);
 	TextOut(hdc, px + HISTMAX + 5, py + 1 + 16, dispStr, lstrlenW(dispStr));
 
 	//Draw vertical yellow line at median
